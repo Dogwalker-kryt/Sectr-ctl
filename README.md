@@ -58,11 +58,11 @@ but to add a safety and orchestration layer on top of them.
 ## Project Structure
 
 ```
-/DriveMgr_CLI      - CLI source code (C++)
+/Sectrctl_CLI      - CLI source code (C++)
     /include       - Headers (.h)
     /src           - Core sources
 
-/DriveMgr_GUI      - GUI version (Rust/C++)
+/Sectrctl_GUI      - GUI version (Rust/C++)
 
 /Launcher
 	launcher.cpp   - Launcher source code (C++)
