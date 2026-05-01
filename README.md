@@ -1,4 +1,4 @@
-# Linux-Drive-Manager
+# Sectr-ctl
 
 A terminal-based drive management tool for Linux (Debian-based), written primarily in C++. 
 
