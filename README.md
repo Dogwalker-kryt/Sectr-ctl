@@ -81,8 +81,7 @@ config.conf        - Example config
 ```
 
 ### Currently wokred on:
-- real tests
-- split up of files in to .cpp and .h 
+- migrating the WHOLE code base from std::string and array, to my own custom scf framework (no uploaded jet)
 
 ---
 
