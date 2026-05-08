@@ -81,7 +81,7 @@ config.conf        - Example config
 ```
 
 ### Currently wokred on:
-- migrating the WHOLE code base from std::string and array, to my own custom scf framework (no uploaded jet)
+	- nothing i have no idea waht to do next
 
 ---
 
