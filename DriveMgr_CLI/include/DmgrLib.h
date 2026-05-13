@@ -39,11 +39,11 @@
 #include <random>
 
 // Project headers
-#include "../utils/debug.h"
+#include "utils/debug.h"
 #include "globals.h"
 #include "EnvSys.hpp"
-#include "../ui/TermiosIO.h"
-#include "../utils/StringUtils.hpp"
+#include "ui/TermiosIO.h"
+#include "utils/StringUtils.hpp"
 
 
 // ==================== Color ====================
