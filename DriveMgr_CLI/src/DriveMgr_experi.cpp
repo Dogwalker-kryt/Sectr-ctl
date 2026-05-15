@@ -19,7 +19,7 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.28.63_dev
+// v0.9.28.68_dev
 
 // C++ libraries
 #include <regex>
@@ -39,7 +39,7 @@
 // ==================== definitions ====================
 
 // ==== Version ====
-#define VERSION std::string("v0.9.28.64_dev")
+#define VERSION std::string("v0.9.28.68_dev")
 
 // ========== Partition Management ========== 
 
@@ -394,9 +394,10 @@ void listpartisions() {
 // ========== Disk Space Analysis ==========··−·
  
 void analyzeDiskSpace() {
+    std::cout << "[Analyze Disk Space]\n";
     const std::string drive_name = ListDrivesUtil::listDrives(true); 
 
-    std::cout  << CYAN << "\n------ Disk Information ------\n" << RESET;
+    std::cout  << Globals::g_THEME_COLOR << "\n------ Disk Information ------\n" << RESET;
 
     std::string disk_cmd = "lsblk -b -o NAME,SIZE,TYPE,MOUNTPOINT -n -p " + drive_name;
     const auto disk_cmd_res = EXEC(disk_cmd); 
@@ -409,13 +410,9 @@ void analyzeDiskSpace() {
     }
 
     std::istringstream iss(disk_cmd_res.output);
-
     std::string line;
-
     bool found = false;
-
     std::string mount_point;
-
     std::string size;
 
     while (std::getline(iss, line)) {
@@ -465,7 +462,7 @@ void analyzeDiskSpace() {
     if (!mount_point.empty() && mount_point != "-") {
 
         std::string df_cmd = "df -h '" + mount_point + "' | tail -1";
-        const auto df_res = EXEC(df_cmd); 
+        const auto df_res = EXEC_QUIET(df_cmd); 
         std::string df_out = df_res.output;
 
         std::istringstream dfiss(df_out);
@@ -473,6 +470,7 @@ void analyzeDiskSpace() {
         std::string filesystem, df_size, used, avail, usep, mnt;
         dfiss >> filesystem >> df_size >> used >> avail >> usep >> mnt;
 
+        std::cout << "\n";
         std::cout << "Used:        " << used << "\n";
         std::cout << "Available:   " << avail << "\n";
         std::cout << "Used %:      " << usep << "\n";
@@ -483,7 +481,7 @@ void analyzeDiskSpace() {
 
     }
     
-    std::cout << CYAN << "------------------------------\n" << RESET;
+    std::cout << Globals::g_THEME_COLOR << "------------------------------\n" << RESET;
 }
 
 
@@ -2661,7 +2659,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         std::string a(argv[i]); 
 
-        if (a == "--no-color" || a == "-c")                        { Globals::g_no_color = true; continue; }
+        if (a == "--no-color" || a == "-nc")                        { Globals::g_no_color = true; continue; }
 
         if (a == "--no-log" || a == "-nl")                         { Globals::g_no_log = true; continue; }
 
@@ -2755,7 +2753,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    // *func for no_color 
+    // func* for no_color 
     using menu_renderer = int(*)(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
     menu_renderer menu_render_strategy = nullptr;
 

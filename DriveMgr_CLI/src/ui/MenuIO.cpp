@@ -120,14 +120,14 @@ int MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std:
         for (int i = 0; i < total; i++) {
             std::cout << "\r"; // go to start of line
 
-            if (i == selected) std::cout << "│ > ";
+            if (i == selected) std::cout << "│ "<< BOLD << "> ";
             else std::cout << "│   ";
 
             std::ostringstream inner;
             inner << std::setw(2) << menuItems[i].first << ". "
                     << std::left << std::setw(44) << menuItems[i].second;
 
-            std::cout << inner.str() << "  │\n";
+            std::cout << inner.str() << "  │" << RESET << "\n";
         }
 
         // Move cursor back up to top of menu

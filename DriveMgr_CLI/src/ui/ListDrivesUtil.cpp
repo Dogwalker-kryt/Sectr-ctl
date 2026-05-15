@@ -1,38 +1,5 @@
 #include "../ui/ListDrivesUtil.hpp"
 
-std::string checkFilesystem(const std::string& device, const std::string& fstype) {
-    if (fstype.empty()) return "Unknown filesystem";
-
-    try {
-        std::string cmd;
-        if (fstype == "ext4" || fstype == "ext3" || fstype == "ext2") {
-            cmd = "e2fsck -n " + device;
-
-        } else if (fstype == "ntfs") {
-            cmd = "ntfsfix --no-action " + device;
-
-        } else if (fstype == "vfat" || fstype == "fat32") {
-            cmd = "dosfsck -n " + device;
-
-        }
-        
-        if (cmd.empty()) return "Unknown filesystem";
-        
-        auto result = EXEC_QUIET(cmd);
-        
-        if (result.output.find("clean") != std::string::npos || result.output.find("no errors") != std::string::npos) {
-            return "Clean";
-        } else if (!result.output.empty()) {
-            return "Issues found";
-        }
-
-        return "Unknown state";
-
-    } catch (const std::exception& e) {
-        return "Check failed: " + std::string(e.what());
-    }
-}
-
 // ========== TUI drive selection/listing ==========
 
 std::string ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows) {
@@ -121,31 +88,27 @@ void ListDrivesUtil::printDriveHeader() {
     if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
     std::cout << "\nAvailable Drives:";
 
-    if (!Globals::g_no_color) std::cout << RESET;
+    // if (!Globals::g_no_color) std::cout << RESET;
     std::cout << "\n";
 
     std::cout << std::left << std::setw(5) << "#";
-    if (!Globals::g_no_color) std::cout << BOLD;
+    // if (!Globals::g_no_color) std::cout << BOLD;
+    std::cout << BOLD;
     std::cout << std::setw(16) << "Device";
 
-    if (!Globals::g_no_color) std::cout << RESET << BOLD;
     std::cout << std::setw(10) << "Size";
 
-    if (!Globals::g_no_color) std::cout << RESET << BOLD;
     std::cout << std::setw(10) << "Type";
 
-    if (!Globals::g_no_color) std::cout << RESET << BOLD;
     std::cout << std::setw(15) << "Mountpoint";
 
-    if (!Globals::g_no_color) std::cout << RESET << BOLD;
     std::cout << std::setw(10) << "FSType";
 
-    if (!Globals::g_no_color) std::cout << RESET;
     std::cout << "Status" << std::endl;
 
-    if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
+    // if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
     std::cout << std::string(90, '-') << "\n";
-    if (!Globals::g_no_color) std::cout << RESET;
+    std::cout << RESET;
 }
 
 std::string ListDrivesUtil::listDrives(bool input_mode) {
@@ -187,7 +150,7 @@ std::string ListDrivesUtil::listDrives(bool input_mode) {
         r.type = disk_row.type;
         r.mount = disk_row.mount;
         r.fstype = disk_row.fstype;
-        r.status = checkFilesystem(r.device, r.fstype);
+        r.status = disk_row.status;
 
         printDriveRow(idx, r);
 

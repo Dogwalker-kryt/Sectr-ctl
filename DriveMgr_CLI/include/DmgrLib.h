@@ -55,7 +55,7 @@ namespace Color {
     inline std::string blue()    { return Globals::g_no_color ? std::string() : "\033[34m"; }
     inline std::string magenta() { return Globals::g_no_color ? std::string() : "\033[35m"; }
     inline std::string cyan()    { return Globals::g_no_color ? std::string() : "\033[36m"; }
-    inline std::string bold()    { return Globals::g_no_color ? std::string() : "\033[1m"; }
+    inline std::string bold()    { return "\033[1m"; }
     inline std::string inverse() { return "\033[7m"; }
 }
 
