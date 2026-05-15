@@ -20,8 +20,8 @@ SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 SRCS_2 := $(wildcard $(SRC_DIR)/ui/*.cpp)
 SRCS_3 := $(wildcard $(SRC_DIR)/utils/*.cpp)
 
-OBJS := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(SRCS) $(SRCS_2) $(SRCS_3)))
-
+# OBJS := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(SRCS) $(SRCS_2) $(SRCS_3)))
+OBJS := $(SRCS:.cpp=.o, SRCS_2:.cpp=.o, SRCS_3:.cpp=.o
 # OBJS := $(SRCS:.cpp=.o)
 
 # Default rule
