@@ -4,12 +4,15 @@ CXX := g++
 # Directories
 SRC_DIR := src
 INC_DIR := include
+INC_DIR_UI := include/ui
+INC_DIR_UTILS := include/utils
+
 
 # Output binary
 TARGET := DMgr_CLI
 
 # Flags
-CXXFLAGS := -std=c++17 -I$(INC_DIR)
+CXXFLAGS := -std=c++17 -I$(INC_DIR) -I$(INC_DIR_UI) -I$(INC_DIR_UTILS)
 LDFLAGS := -flto -s -O2 -lssl -lcrypto
 
 # Source and object files
