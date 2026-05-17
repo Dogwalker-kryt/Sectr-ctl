@@ -13,8 +13,8 @@ CXXFLAGS := -std=c++17 -I$(INC_DIR) -I$(INC_DIR_UI) -I$(INC_DIR_UTILS)
 LDFLAGS := -flto -s -O2 -lssl -lcrypto
 
 SRCS := $(wildcard $(SRC_DIR)/*.cpp) \
-        $(wildcard $(SRC_DIR)/ui/*.cpp) \
-        $(wildcard $(SRC_DIR)/utils/*.cpp)
+    $(wildcard $(SRC_DIR)/ui/*.cpp) \
+    $(wildcard $(SRC_DIR)/utils/*.cpp)
 
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 
@@ -30,7 +30,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
     $(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-        rm -rf $(BUILD_DIR) $(TARGET)
+    rm -rf $(BUILD_DIR) $(TARGET)
 
 run: all
-        ./$(TARGET)
+    ./$(TARGET)
