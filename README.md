@@ -224,6 +224,8 @@ make
 ```
 After this move the Binary into the path/bin/bin folder 
 
+of move the binary from the bin folder in to the bin/bin dir
+
 
 ##### For the GUI version:
 
@@ -287,17 +289,17 @@ Start by running the program (root required for some features):
 
 **starting raw binary**
 ```sh
-sudo ./DriveMgr        
+sudo ./Sctrctl        
 ```
 
 **with flags**
 ```sh
-sudo ./DriveMgr --operation-name  		
+sudo .//Sctrctl --operation-name  		
 ```
 
 **through Launcher**
 ```sh
-sudo dmgr	
+sudo sectrctl	
 ```
 
 When started, you'll see a menu, for example:
