@@ -38,6 +38,9 @@ but to add a safety and orchestration layer on top of them.
 - Experimental: `v0.9.28.69`  
   _(minor UI changes)_
 
+- Currently worked on:
+	Migrating parts of the code base to scf_str, wich is a fixed sized stack string 
+
 ### GUI (Not getting Updated anymore):
 
 - Rust GUI: `v0.1.5-alpha` (Lists drives; not feature complete)
@@ -79,9 +82,6 @@ setuo.py	       - Build/install script
 config.conf        - Example config
 
 ```
-
-### Currently wokred on:
-	- nothing i have no idea waht to do next
 
 ---
 
