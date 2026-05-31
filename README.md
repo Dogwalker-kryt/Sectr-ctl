@@ -35,8 +35,8 @@ but to add a safety and orchestration layer on top of them.
 
 ### CLI:
 
-- Experimental: `v0.9.28.69`  
-  _(minor UI changes)_
+- Experimental: `v0.9.29.71`  
+  _(partialy migrating to scf_str and minor UI fixed)_
 
 ### GUI (Not getting Updated anymore):
 
