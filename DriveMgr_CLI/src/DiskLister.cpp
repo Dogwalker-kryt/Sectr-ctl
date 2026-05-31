@@ -11,12 +11,12 @@ std::string DiskLister::getMountPoint(const std::string& device) {
     std::ifstream mtab("/etc/mtab");
     if (!mtab.is_open()) return "";
     std::string line;
+
     while (std::getline(mtab, line)) {
         std::istringstream iss(line);
         std::string dev, mount, fstype;
-        if (std::getline(iss, dev, ' ') &&
-            std::getline(iss, mount, ' ') &&
-            std::getline(iss, fstype, ' ')) {
+
+        if (std::getline(iss, dev, ' ') && std::getline(iss, mount, ' ') && std::getline(iss, fstype, ' ')) {
             if (dev.find(device) != std::string::npos) {
                 return mount;
             }
@@ -29,12 +29,12 @@ std::string DiskLister::getFsType(const std::string& device) {
     std::ifstream mtab("/etc/mtab");
     if (!mtab.is_open()) return "";
     std::string line;
+
     while (std::getline(mtab, line)) {
         std::istringstream iss(line);
         std::string dev, mount, fstype;
-        if (std::getline(iss, dev, ' ') &&
-            std::getline(iss, mount, ' ') &&
-            std::getline(iss, fstype, ' ')) {
+
+        if (std::getline(iss, dev, ' ') && std::getline(iss, mount, ' ') && std::getline(iss, fstype, ' ')) {
             if (dev.find(device) != std::string::npos) {
                 return fstype;
             }

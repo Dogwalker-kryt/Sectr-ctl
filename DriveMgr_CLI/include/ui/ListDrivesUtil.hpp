@@ -27,7 +27,7 @@ class ListDrivesUtil {
          * @param drives use the std::vector<std::string> where you stored your fetched drives
          * @param rows use the std::verctor<Row> rows, that is only in this class avilable
          */
-        static std::string tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows);
+        static str512 tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows);
 
         static void printDriveRow(int idx, const Row& r);
         
@@ -38,7 +38,10 @@ class ListDrivesUtil {
          * @param input_mode if 'true' then the TUI selection enables and returns the selected drive when pressed enter
          * @returns selected drive name as string. TUI must be enabled for this to happen
          */
-        static std::string listDrives(bool input_mode);
+        static str512 listDrives(bool input_mode);
 
+        /**
+         * @brief idk why its here
+         */
         static std::string listDaDrives(bool input_mode);
 };

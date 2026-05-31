@@ -1,4 +1,4 @@
-#include "../include/utils/StringUtils.hpp"
+#include "utils/StringUtils.hpp"
 
 
 std::string StrUtils::checkIfEmpty(const std::string &_str) {

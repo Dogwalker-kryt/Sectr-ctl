@@ -2,7 +2,7 @@
 
 // ========== TUI drive selection/listing ==========
 
-std::string ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows) {
+str512 ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows) {
     term.enableRawMode();
 
     int selected = 0;
@@ -18,14 +18,17 @@ std::string ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &dri
             // Arrow indicator
             if (i == selected) { 
                 if (!Globals::g_no_color) std::cout << Globals::g_SELECTION_COLOR;
+                if (Globals::g_no_color) std::cout << BOLD;
                 std::cout << "> ";
                 if (!Globals::g_no_color) std::cout << RESET;
+                if (Globals::g_no_color) std::cout << RESET;
             } else { 
                 std::cout << "  "; 
             }
 
             // Highlight row
             if (i == selected && !Globals::g_no_color) std::cout << Globals::g_SELECTION_COLOR;
+            if (i == selected && Globals::g_no_color) std::cout << BOLD;
 
             std::cout << std::left
                 << std::setw(3)  << i
@@ -37,6 +40,7 @@ std::string ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &dri
                 << rows[i].status;
 
             if (i == selected && !Globals::g_no_color) std::cout << RESET;
+            else if (i == selected && Globals::g_no_color) std::cout << RESET;
 
             std::cout << "\n"; 
         }
@@ -69,7 +73,7 @@ std::string ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &dri
     term.restoreTerminal();
 
     auto tui_selected_drive = drives[selected];
-    return tui_selected_drive;
+    return to_str512(tui_selected_drive);
 }
 
 
@@ -92,8 +96,7 @@ void ListDrivesUtil::printDriveHeader() {
     std::cout << "\n";
 
     std::cout << std::left << std::setw(5) << "#";
-    // if (!Globals::g_no_color) std::cout << BOLD;
-    std::cout << BOLD;
+    if (Globals::g_no_color) std::cout << BOLD;
     std::cout << std::setw(16) << "Device";
 
     std::cout << std::setw(10) << "Size";
@@ -111,7 +114,7 @@ void ListDrivesUtil::printDriveHeader() {
     std::cout << RESET;
 }
 
-std::string ListDrivesUtil::listDrives(bool input_mode) {
+str512 ListDrivesUtil::listDrives(bool input_mode) {
     if (Globals::g_selected_drive_by_flag == true) {
         return Globals::g_selected_drive;
     }

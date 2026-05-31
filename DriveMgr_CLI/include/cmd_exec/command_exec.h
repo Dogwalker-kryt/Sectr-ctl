@@ -20,6 +20,7 @@
 #pragma once
 
 #include <sys/wait.h>
+#include "../scf_str.hpp"
 
 struct ExecResult {
     int exit_code{ -1 };
@@ -62,10 +63,12 @@ static ExecResult run_command(const char* cmd, int /*timeout_seconds*/ = 0) {
         // child
         dup2(outpipe[1], STDOUT_FILENO);
         dup2(errpipe[1], STDERR_FILENO);
+        
         // close unused fds
         close(outpipe[0]); close(outpipe[1]);
         close(errpipe[0]); close(errpipe[1]);
         execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
+
         _exit(127);
     }
 
@@ -82,14 +85,20 @@ static ExecResult run_command(const char* cmd, int /*timeout_seconds*/ = 0) {
 
     int status = 0;
     pid_t w = waitpid(pid, &status, 0);
+
     if (w == -1) {
         res.exit_code = -1;
+
     } else if (WIFEXITED(status)) {
         res.exit_code = WEXITSTATUS(status);
+
     } else if (WIFSIGNALED(status)) {
         res.exit_code = 128 + WTERMSIG(status);
+
     } else {
         res.exit_code = -1;
+
     }
+
     return res;
 }

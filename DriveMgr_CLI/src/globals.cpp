@@ -4,18 +4,18 @@
 
 bool Globals::g_no_color = false;
 
-std::string Globals::g_THEME_COLOR = "default";
+scf::str8 Globals::g_THEME_COLOR = "default";
 
-std::string Globals::g_SELECTION_COLOR = "default";
+scf::str8 Globals::g_SELECTION_COLOR = "default";
 
 
 // === drive related globals ===
 
-std::string Globals::g_selected_drive;
+scf::str512 Globals::g_selected_drive;
 
 bool Globals::g_selected_drive_by_flag = false;
 
-std::vector<std::string> Globals::g_last_drives;
+std::vector<scf::str512> Globals::g_last_drives;
 
 
 // === config related globals ===
@@ -23,7 +23,7 @@ std::vector<std::string> Globals::g_last_drives;
 
 bool Globals::g_config_src_flag = false;
 
-std::string Globals::g_config_src_path;
+scf::str1024 Globals::g_config_src_path;
 
 
 // === program state globals ===

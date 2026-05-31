@@ -2,20 +2,20 @@
 
 
 
-LDMUpdater::Version_int LDMUpdater::parseVersionVals(const std::string &v) {
+LDMUpdater::Version_int LDMUpdater::parseVersionVals(const str16 &v) {
     Version_int ver;
-    std::string ver_str = v;
+    str16 ver_str = v;
 
     if (!ver_str.empty() && (ver_str[0] == 'v' || ver_str[0] == 'V')) {
         ver_str.erase(0, 1);
      }
 
     size_t dash_pos = ver_str.find('-');
-    if (dash_pos != std::string::npos) {
-        ver_str.resize(dash_pos);
+    if (dash_pos != scf::str_t::npos) {
+        ver_str.substr(dash_pos);
     }
 
-    std::stringstream ss(ver_str);
+    std::stringstream ss(ver_str.to_std_str<16>());
     char dot;
     ss >> ver.major_realease >> dot
         >> ver.major >> dot 
@@ -40,23 +40,24 @@ int LDMUpdater::comparing_versions(const Version_int &version_local, const Versi
     return 0;
 }
 
-std::string LDMUpdater::getVersionGithub() {
-    std::string cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
+str64 LDMUpdater::getVersionGithub() {
+    str1024 cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
     auto res = EXEC_QUIET_SUDO(cmd);
-    std::string json = res.output;
+    str4096 json = res.output;
 
     size_t pos = json.find("\"tag_name\"");
-    if (pos == std::string::npos) {
+    if (pos == scf::str_t::npos) {
         return "";
     }
 
     pos = json.find(":", pos);
     pos = json.find("\"", pos) + 1;
     size_t end = json.find("\"", pos);
-    return json.substr(pos, end - pos);
+    size_t version_length = end - pos;
+    return json.substr(pos, version_length);
 }
 
-void LDMUpdater::updaterMain(const std::string &LOCAL_VERSION) {
+void LDMUpdater::updaterMain(const str16 &LOCAL_VERSION) {
     std::cout << YELLOW << "\n[INFO] " << RESET << "Make sure you are connected to the internet\n";
 
     std::string dev_suffix;
@@ -66,7 +67,7 @@ void LDMUpdater::updaterMain(const std::string &LOCAL_VERSION) {
     }
 
     Version_int local_version = parseVersionVals(LOCAL_VERSION);
-    std::string remote_version_str = getVersionGithub();
+    str64 remote_version_str = getVersionGithub();
     Version_int remote_version = parseVersionVals(remote_version_str);
 
     int cmp = comparing_versions(local_version, remote_version);

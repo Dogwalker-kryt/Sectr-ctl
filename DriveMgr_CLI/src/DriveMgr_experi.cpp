@@ -19,7 +19,8 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.28.69
+// v0.9.29.72
+
 // C++ libraries
 #include <regex>
 #include <cstdint>
@@ -37,17 +38,17 @@
 #include "../include/ui/TerminalSize.hpp"
 
 // ==== Version ====
-#define VERSION std::string("v0.9.28.69")
+#define VERSION scf::str16("v0.9.29.72")
 
 // ========== Partition Management ========== 
 
 class PartitionsUtils {
     private:
         // 1
-        static bool resizePartition(const std::string& device, uint64_t newSizeMB) {
+        static bool resizePartition(const scf::str512& device, uint64_t newSizeMB) {
             try {
 
-                const std::string cmd = "parted --script " + device + " resizepart 1 " + std::to_string(newSizeMB) + "MB";
+                const scf::str1024 cmd = "parted --script " + device + " resizepart 1 " + scf::to_str8(newSizeMB) + "MB";
                                  
                 const auto res = EXEC(cmd);
                 return res.success;
@@ -62,10 +63,10 @@ class PartitionsUtils {
         }
 
         // 2
-        static bool movePartition(const std::string& device, int partNum, uint64_t startSectorMB) {
+        static bool movePartition(const scf::str512& device, int partNum, uint64_t startSectorMB) {
             try {
 
-                const std::string cmd = "parted --script " + device + " move " + std::to_string(partNum) + " " + std::to_string(startSectorMB) + "MB";
+                const scf::str1024 cmd = "parted --script " + device + " move " + scf::to_str16(partNum) + " " + scf::to_str16(startSectorMB) + "MB";
                                  
                 const auto res = EXEC_SUDO(cmd);
                 return res.success;
@@ -80,17 +81,17 @@ class PartitionsUtils {
         }
 
         // 3
-        static bool changePartitionType(const std::string& device, int partNum, const std::string& newType) {
+        static bool changePartitionType(const scf::str512& device, int partNum, const scf::str8 &newType) {
             try {
 
-                const std::string backupCmd = "sfdisk -d " + device + " > " + device + "_backup.sf";
+                const scf::str1024 backupCmd = "sfdisk -d " + device + " > " + device + "_backup.sf";
                 EXEC_QUIET(backupCmd);
 
-                const std::string cmd = "echo 'type=" + newType + "' | sfdisk --part-type " + device + " " + std::to_string(partNum);
+                const scf::str1024 cmd = "echo 'type=" + newType + "' | sfdisk --part-type " + device + " " + scf::to_str8(partNum);
                                  
                 const auto res = EXEC(cmd); 
-                const std::string output = res.output;
-                return output.find("error") == std::string::npos;
+                const scf::str4096 output = res.output;
+                return output.find("error") == scf::str_t::npos;
 
             } catch (const std::exception&) {
 
@@ -102,7 +103,7 @@ class PartitionsUtils {
         }
 
     public:
-        static void case1ResizePartition(const std::vector<std::string> &partitions) {
+        static void case1ResizePartition(const std::vector<scf::str512> &partitions) {
             std::cout << "Enter partition number (1-" << partitions.size() << "): ";
             int partNum;
             std::cin >> partNum;
@@ -163,7 +164,7 @@ class PartitionsUtils {
             }
         }
 
-        static void case2MovePartition(const std::vector<std::string> &partitions) {
+        static void case2MovePartition(const std::vector<scf::str512> &partitions) {
             std::cout << "Enter partition number (1-" << partitions.size() << "): ";
 
             int partNum;
@@ -225,7 +226,7 @@ class PartitionsUtils {
             }
         }
 
-        static void case3ChangePartitionType(const std::vector<std::string> &partitions, const std::string &drive_name) {
+        static void case3ChangePartitionType(const std::vector<scf::str512> &partitions, const scf::str512 &drive_name) {
             std::cout << "Enter partition number (1-" << partitions.size() << "): ";
 
             int partNum;
@@ -251,9 +252,7 @@ class PartitionsUtils {
             auto typeNum = InputValidation::getInt(1, 4);
             if (!typeNum.has_value()) return;
 
-            std::string newType;
-
-            
+            scf::str8 newType;
 
             switch (*typeNum) {
                 case 1: newType = "83"; break;
@@ -285,11 +284,11 @@ class PartitionsUtils {
 };
 
 void listpartisions() { 
-    const std::string drive_name = ListDrivesUtil::listDrives(true); 
+    const scf::str512 drive_name = ListDrivesUtil::listDrives(true); 
 
     std::cout << "\nPartitions of drive " << drive_name << ":\n";
 
-    const std::string cmd = "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE -n -p " + drive_name; 
+    const str1024 cmd = "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE -n -p " + drive_name; 
     const auto res = EXEC_QUIET(cmd); 
 
     if (!res.success) {
@@ -315,7 +314,7 @@ void listpartisions() {
               << "\n";
     std::cout << std::string(63, '-') << "\n";
 
-    std::vector<std::string> partitions;
+    std::vector<scf::str512> partitions;
 
     while (std::getline(iss, line)) {
 
@@ -393,11 +392,11 @@ void listpartisions() {
 
 void analyzeDiskSpace() {
     std::cout << "[Analyze Disk Space]\n";
-    const std::string drive_name = ListDrivesUtil::listDrives(true); 
+    const scf::str512 drive_name = ListDrivesUtil::listDrives(true); 
 
-    std::cout  << (Globals::g_no_color ? BOLD : Globals::g_THEME_COLOR) << "\n┌────── Disk Information ──────\n" << RESET;
+    std::cout  << (Globals::g_no_color ? BOLD : std::string(Globals::g_THEME_COLOR)) << "\n┌────── Disk Information ──────\n" << RESET;
 
-    std::string disk_cmd = "lsblk -b -o NAME,SIZE,TYPE,MOUNTPOINT -n -p " + drive_name;
+    const scf::str1024 disk_cmd = "lsblk -b -o NAME,SIZE,TYPE,MOUNTPOINT -n -p " + drive_name;
     const auto disk_cmd_res = EXEC_QUIET(disk_cmd); 
 
     if (!disk_cmd_res.success || disk_cmd_res.output.empty()) {
@@ -412,9 +411,9 @@ void analyzeDiskSpace() {
         std::string line;
 
         while (std::getline(iss, line)) {
-            std::cout << "│ " << line << "\n";
+            std::cout << Globals::g_THEME_COLOR << "│ " << RESET << line << "\n";
         }
-        std::cout << "│\n";
+        std::cout << Globals::g_THEME_COLOR << "│\n" << RESET;
     }
 
     std::istringstream iss(disk_cmd_res.output);
@@ -436,7 +435,7 @@ void analyzeDiskSpace() {
 
         if (type == "disk") {
             found = true;
-            std::cout << "│ Device:      " << name << "\n";
+            std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Device:      " << name << "\n";
             try {
 
                 unsigned long long bytes = std::stoull(size);
@@ -449,14 +448,14 @@ void analyzeDiskSpace() {
                     ++unit;
                 }
 
-                std::cout << "│ Size:        " << human_size << " " << units[unit] << "\n";
+                std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Size:        " << human_size << " " << units[unit] << "\n";
 
             } catch (...) {
-                std::cout << "│ Size:        " << size << " bytes\n";
+                std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Size:        " << size << " bytes\n";
             }
 
-            std::cout << "│ Type:        " << type << "\n";
-            std::cout << "│ Mountpoint:  " << (mount_point.empty() ? "-" : mount_point) << "\n";
+            std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Type:        " << type << "\n";
+            std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Mountpoint:  " << (mount_point.empty() ? "-" : mount_point) << "\n";
         }
     }
 
@@ -478,18 +477,18 @@ void analyzeDiskSpace() {
         std::string filesystem, df_size, used, avail, usep, mnt;
         dfiss >> filesystem >> df_size >> used >> avail >> usep >> mnt;
 
-        std::cout << "│\n";
-        std::cout << "│ Used:        " << used << "\n";
-        std::cout << "│ Available:   " << avail << "\n";
-        std::cout << "│ Used %:      " << usep << "\n";
+        std::cout << Globals::g_THEME_COLOR << "│\n" << RESET;
+        std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Used:        " << used << "\n";
+        std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Available:   " << avail << "\n";
+        std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "Used %:      " << usep << "\n";
 
     } else {
 
-        std::cout << "No mountpoint, cannot show used/free space.\n";
+        std::cout << Globals::g_THEME_COLOR << "│ " << RESET << "No mountpoint, cannot show used/free space.\n";
 
     }
     
-    std::cout << (Globals::g_no_color ? BOLD : Globals::g_THEME_COLOR) << "└──────────────────────────────\n" << RESET;
+    std::cout << (Globals::g_no_color ? BOLD : std::string(Globals::g_THEME_COLOR)) << "└──────────────────────────────\n" << RESET;
 }
 
 
@@ -497,7 +496,7 @@ void analyzeDiskSpace() {
 
 class FormatUtils {
 private:
-    static bool confirm_format(const std::string& drive, const std::string& label = "", const std::string& fs_type = "") {
+    static bool confirm_format(const scf::str1024& drive, const scf::str32& label = "", const scf::str16& fs_type = "") {
         std::ostringstream msg;
 
         msg << "Are you sure you want to format: " << drive;
@@ -525,7 +524,7 @@ private:
     }
 
 public:
-    static void format_drive(const std::string& drive_to_format, const std::string& label = "", const std::string& fs_type = "ext4") {
+    static void format_drive(const scf::str1024& drive_to_format, const scf::str32& label = "", const scf::str16& fs_type = "ext4") {
         if (!label.empty()) {
 
             if (label.length() > 16) {
@@ -549,7 +548,7 @@ public:
 
             cmd << " " << drive_to_format;
             
-            auto res = EXEC(cmd.str());
+            auto res = EXEC(scf::to_str1024(cmd.str()));
             
             if (!res.success) {
 
@@ -566,17 +565,17 @@ public:
             
         } catch(const std::exception& e) {
 
-            ERR(ErrorCode::ProcessFailure, "Exception during formatting: " + std::string(e.what()));
-            LOG_ERROR("Format exception: " + std::string(e.what()));
+            ERR(ErrorCode::ProcessFailure, "Exception during formatting: " + scf::str256(e.what()));
+            LOG_ERROR("Format exception: " + scf::str256(e.what()));
             return;
 
         }
     }
     
     // Wrapper functions for backward compatibility
-    static void formatDriveBasic(const std::string& drive) { format_drive(drive); }
-    static void formatDriveWithLabel(const std::string& drive, const std::string& label) { format_drive(drive, label); }
-    static void formatDriveWithLabelAndFS(const std::string& drive, const std::string& label, const std::string& fs) { format_drive(drive, label, fs); }
+    static void formatDriveBasic(const scf::str512& drive) { format_drive(drive); }
+    static void formatDriveWithLabel(const scf::str512& drive, const scf::str32& label) { format_drive(drive, label); }
+    static void formatDriveWithLabelAndFS(const scf::str512& drive, const scf::str32& label, const scf::str16& fs) { format_drive(drive, label, fs); }
 };
 
 void formatDrive() {
@@ -587,9 +586,9 @@ void formatDrive() {
         case 1:
             {
                 std::cout << "Choose a Drive to Format\n";
-                const std::string driveName = ListDrivesUtil::listDrives(true);
+                const scf::str512 driveName = ListDrivesUtil::listDrives(true);
 
-                FormatUtils::formatDriveBasic(driveName);
+                FormatUtils::formatDriveBasic(to_str512(driveName));
             }
 
             break;
@@ -597,13 +596,13 @@ void formatDrive() {
         case 2:
             {
                 std::cout << "Choose a Drive to Format with label\n";
-                const std::string driveName = ListDrivesUtil::listDrives(true);
+                const scf::str512 driveName = ListDrivesUtil::listDrives(true);
 
                 std::cout << "Enter label: ";
                 auto label = InputValidation::getString();
                 if (!label.has_value()) return;
 
-                FormatUtils::formatDriveWithLabel(driveName, *label);
+                FormatUtils::formatDriveWithLabel(to_str512(driveName), *label);
             }
 
             break;
@@ -611,7 +610,7 @@ void formatDrive() {
         case 3:
             {
                 std::cout << "Choose a Drive to Format with label and filesystem type\n";
-                const std::string driveName = ListDrivesUtil::listDrives(true);
+                const scf::str512 driveName = ListDrivesUtil::listDrives(true);
 
                 std::cout << "Enter label: ";
                 auto label = InputValidation::getString();
@@ -620,7 +619,7 @@ void formatDrive() {
                 std::cout << "Enter filesystem type (e.g. ext4, ntfs, vfat): ";
                 auto fsType = InputValidation::getString();
 
-                FormatUtils::formatDriveWithLabelAndFS(driveName, *label, *fsType);
+                FormatUtils::formatDriveWithLabelAndFS(to_str512(driveName), *label, *fsType);
             }
 
             break;
@@ -642,18 +641,18 @@ void formatDrive() {
 
 int checkDriveHealth() {
     std::cout << "[Check Drive health]\n";
-    const std::string driveHealth_name = ListDrivesUtil::listDrives(true);
+    const scf::str512 driveHealth_name = ListDrivesUtil::listDrives(true);
 
     try {
 
-        const std::string health_cmd = "smartctl -H " + driveHealth_name;
+        const scf::str1024 health_cmd = "smartctl -H " + driveHealth_name;
         const auto res = EXEC_QUIET_SUDO(health_cmd);
         const std::string health_output = StrUtils::removeFirstLines(res.output, 3); 
         std::cout << health_output;
 
     } catch(const std::exception& e) {
 
-        std::string error = e.what();
+        scf::str256 error = e.what();
         LOG_ERROR(error);
         ERR(ErrorCode::ProcessFailure, e.what());
 
@@ -683,27 +682,27 @@ void resizeDrive() {
 
     try {
 
-        const std::string resize_cmd = "sudo parted --script " + driveName +  " resizepart 1 " + std::to_string(new_size.value_or(0)) + "GB";
+        const scf::str1024 resize_cmd = "sudo parted --script " + driveName +  " resizepart 1 " + std::to_string(new_size.value_or(0)) + "GB";
         const auto res = EXEC(resize_cmd); std::string resize_output = res.output;
 
         std::cout << resize_output << "\n";
 
         if (resize_output.find("error") != std::string::npos) {
 
-            ERR(ErrorCode::ProcessFailure, "Failed to resize drive: " + driveName);
-            LOG_ERROR("Failed to resize drive: " + driveName );
+            ERR(ErrorCode::ProcessFailure, "Failed to resize drive: " + to_str512(driveName));
+            LOG_ERROR("Failed to resize drive: " + to_str512(driveName) );
 
         } else {
 
             std::cout << GREEN << "Drive resized successfully\n" << RESET;
-            LOG_SUCCESS("Drive resized successfully: " + driveName );
+            LOG_SUCCESS("Drive resized successfully: " + to_str512(driveName) );
 
         }
 
     } catch (const std::exception& e) {
 
-        ERR(ErrorCode::ProcessFailure, "Exception during resize: " + std::string(e.what()));
-        LOG_ERROR("Exception during resize: " + std::string(e.what()));
+        ERR(ErrorCode::ProcessFailure, "Exception during resize: " + scf::str256(e.what()));
+        LOG_ERROR("Exception during resize: " + scf::str256(e.what()));
 
     }
 }
@@ -726,8 +725,8 @@ private:
         }
     };
 
-    static std::optional<std::string> isValidDrive(const std::string &drive_name) {
-        std::string cmd = "lsblk -o TYPE,VENDOR,TRAN -P -p " + drive_name; 
+    static std::optional<scf::str512> isValidDrive(const scf::str512 &drive_name) {
+        std::string cmd = "lsblk -o TYPE,VENDOR,TRAN -P -p " + scf::to_std_str(drive_name); 
         auto res = EXEC_QUIET(cmd);
 
         if (!res.success || res.output.empty()) {
@@ -786,13 +785,12 @@ private:
     static bool confirmationKeyInput() {
         std::cout << "\nTo proceed with anything you need to retype the following confirmation key:\n";
 
-        const std::string confirmation_key = confirmationKeyGenerator();
+        const str<10> confirmation_key = confirmationKeyGenerator();
         std::cout << "\n" << confirmation_key << "\n";
 
         std::cout << "\nretype the key:\n";
 
-        std::string user_retyped_key;
-        std::getline(std::cin, user_retyped_key);
+        str<10> user_retyped_key = scf::io::read<str<10>>();
 
         if (user_retyped_key != confirmation_key) {
 
@@ -812,13 +810,12 @@ private:
 
             }
 
-            std::string confirm_key2 = confirmationKeyGenerator();
+            str<10> confirm_key2 = confirmationKeyGenerator();
 
             std::cout << "\n[last chance] Retype the following confirmation key:\n";
             std::cout << "\n" << confirm_key2 << "\n";
 
-            std::string confirm_key2_input;
-            std::getline(std::cin, confirm_key2_input);
+            str<10> confirm_key2_input = scf::io::read<str<10>>();
 
             if (confirm_key2_input != confirm_key2) {
 
@@ -834,14 +831,14 @@ private:
         return true;
     }
 
-    static void encryptUSBDrive(const std::string &drive_name) {
+    static void encryptUSBDrive(const scf::str256 &drive_name) {
         //passphrases
         std::cout << BOLD << "\n[Encryption of " << drive_name << "]" << RESET << "\n" ;
-        std::string passphrase, passphrase_retype;
+        scf::str64 passphrase, passphrase_retype;
         
         std::cout << RED << "\n[WARNING] " << RESET << "You should save or remember the passphrase!\n The DMgr will NOT! save it\n";
         std::cout << "\nEnter a Passphrase for the encrypted USB\n";
-        std::getline(std::cin, passphrase);
+        scf::io::read(passphrase);
 
         if (!passphrase.empty()) {
 
@@ -852,7 +849,7 @@ private:
         }
 
         std::cout << "\nRetype your Passphrase you just entered:\n";
-        std::getline(std::cin, passphrase_retype);
+        scf::io::read(passphrase_retype);
     
         if (passphrase.empty() || passphrase_retype.empty()) {
 
@@ -875,7 +872,7 @@ private:
         tmpfile.close();
 
         // pass passphrases to crypsetup
-        const std::string cryptsetup_cmd = "cryptsetup luksFormat " + drive_name + " --key-file=/tmp/LDM_tmp_dump.txt -q && shred /tmp/LDM_tmp_dump.txt";
+        const scf::str1024 cryptsetup_cmd = "cryptsetup luksFormat " + drive_name + " --key-file=/tmp/LDM_tmp_dump.txt -q && shred /tmp/LDM_tmp_dump.txt";
         const auto cryptsetup_res = EXEC_SUDO(cryptsetup_cmd);
     
         if (!cryptsetup_res.success) {
@@ -888,10 +885,10 @@ private:
 
         // open encrypted device
         std::cout << "[INFO] open encrypted device...\n";
-        const std::string mapper_name = "enc_usb";
-        const std::string mapper_path = "/dev/mapper/" + mapper_name;
+        const scf::str8 mapper_name = "enc_usb";
+        const scf::str32 mapper_path = "/dev/mapper/" + mapper_name;
 
-        const std::string cryptsetup_open_cmd = "echo \"" + passphrase + "\" | cryptsetup open " + drive_name + " " + mapper_name + " --key-file=-";
+        const scf::str1024 cryptsetup_open_cmd = "echo \"" + passphrase + "\" | cryptsetup open " + drive_name + " " + mapper_name + " --key-file=-";
         const auto cryptsetup_open_res = EXEC_SUDO(cryptsetup_open_cmd);
 
         if (!cryptsetup_open_res.success) {
@@ -2290,7 +2287,7 @@ void logViewer() {
 
     if (!file) {
 
-        LOG_ERROR("Unable to read log file at " + Globals::log_path.string());
+        LOG_ERROR("Unable to read log file at " + to_str1024(Globals::log_path));
         ERR(ErrorCode::FileNotFound, "Unable to read log file at path: " + Globals::log_path.string());
 
         std::cout << "Please read the log file manually at: " << Globals::log_path.string() << "\n";
@@ -2300,7 +2297,7 @@ void logViewer() {
 
     std::cout << "\nLog file content:\n";
 
-    const std::unordered_map<std::string, std::string> log_tags {
+    const std::unordered_map<scf::str16, std::string> log_tags {
         {"[ERROR]", RED},
         {"[EXEC]",  CYAN},
         {"[WARNING]", YELLOW},
@@ -2315,7 +2312,7 @@ void logViewer() {
 
         for (const auto& [log_tag, color] : log_tags) {
 
-            if (line.find(log_tag) != std::string::npos) {
+            if (line.find(log_tag) != scf::str16::npos) {
 
                 std::cout << color << line << RESET << "\n";
 
@@ -2325,7 +2322,7 @@ void logViewer() {
             }
         }
 
-        if (matching != true) {
+        if (!matching) {
             std::cout << line << "\n";
         }
     }
@@ -2351,10 +2348,10 @@ void logViewer() {
 class ConfigValueHandeling {
     public:
         struct CONFIG_VALUES {
-            std::string UI_MODE = "CLI";
-            std::string COMPILE_MODE = "StatBin";
-            std::string THEME_COLOR_MODE = "RESET";
-            std::string SELECTION_COLOR_MODE = "RESET";
+            scf::str16 UI_MODE = "CLI";
+            scf::str16 COMPILE_MODE = "StatBin";
+            scf::str16 THEME_COLOR_MODE = "RESET";
+            scf::str16 SELECTION_COLOR_MODE = "RESET";
             bool DRY_RUN_MODE = false;
             bool ROOT_MODE = false;
         };
@@ -2364,7 +2361,7 @@ class ConfigValueHandeling {
 
             if (Globals::g_config_src_flag == true) {
 
-                Globals::config_path = Globals::g_config_src_path;
+                Globals::config_path = std::filesystem::path(scf::to_std_str(Globals::g_config_src_path));
 
             }
 
@@ -2378,8 +2375,8 @@ class ConfigValueHandeling {
 
             if (!std::filesystem::exists(Globals::config_path)) {
 
-                ERR(ErrorCode::FileNotFound, "Config file not found at path: " + Globals::config_path.string() + ". Check if the config exists and is readable. Returning default config values.");
-                LOG_ERROR("Config file not found at path: " + Globals::config_path.string());
+                ERR(ErrorCode::FileNotFound, "Config file not found at path: " + scf::to_str512(Globals::config_path) + ". Check if the config exists and is readable. Returning default config values.");
+                LOG_ERROR("Config file not found at path: " + scf::to_str512(Globals::config_path));
                 return cfg;
 
             }
@@ -2445,21 +2442,21 @@ class ConfigValueHandeling {
 
             if (!std::filesystem::exists(Globals::lume_path)) {
 
-                ERR(ErrorCode::FileNotFound, "Lume editor not found at: " + Globals::lume_path.string());
-                LOG_ERROR("Lume editor missing at: " + Globals::lume_path.string());
+                ERR(ErrorCode::FileNotFound, "Lume editor not found at: " + scf::to_str512(Globals::lume_path));
+                LOG_ERROR("Lume editor missing at: " + scf::to_str512(Globals::lume_path));
                 return;
 
             }
 
             if (!std::filesystem::exists(Globals::config_path)) {
 
-                ERR(ErrorCode::FileNotFound, "Config file not found at: " + Globals::config_path.string());
-                LOG_ERROR("Config file missing at: " + Globals::config_path.string());
+                ERR(ErrorCode::FileNotFound, "Config file not found at: " + scf::to_str512(Globals::config_path));
+                LOG_ERROR("Config file missing at: " + scf::to_str512(Globals::config_path));
                 return;
 
             }
 
-            const std::string cmd = "\"" + Globals::lume_path.string() + "\" \"" + Globals::config_path.string() + "\"";
+            const scf::str1024 cmd = "\"" + scf::to_str256(Globals::lume_path) + "\" \"" + scf::to_str256(Globals::config_path) + "\"";
 
             std::cout << LEAVETERMINALSCREEN << std::flush;
             term.restoreTerminal();
@@ -2502,11 +2499,11 @@ class ConfigValueHandeling {
 
 class DriveFingerprinting {
 private:
-    static DriveMetadataStruct::DriveMetadata getMetadata(const std::string& drive) {
+    static DriveMetadataStruct::DriveMetadata getMetadata(const scf::str256& drive) {
         DriveMetadataStruct::DriveMetadata metadata;
-        const std::string cmd = "lsblk -o NAME,SIZE,MODEL,SERIAL,UUID -P -p " + drive; 
+        const scf::str1024 cmd = "lsblk -o NAME,SIZE,MODEL,SERIAL,UUID -P -p " + drive; 
 
-        const auto res = EXEC_QUIET(cmd);
+        const auto res = EXEC_QUIET(std::string(cmd));
 
         if (!res.success || res.output.empty()) { 
 
@@ -2544,12 +2541,12 @@ private:
      * @brief fingerprinting() takes the string combined_metadata and creates a sha256 hash of the combined_metadata
      * @param combined_metadata contains the metadata of the drive to create the sha256 has
      */
-    static std::string fingerprinting(const std::string& combined_metadata) {
+    static scf::str256 fingerprinting(const scf::str2048 &combined_metadata) {
         unsigned char hash[SHA256_DIGEST_LENGTH];
 
         SHA256(reinterpret_cast<const unsigned char*>(combined_metadata.c_str()), combined_metadata.size(), hash);
 
-        std::string fingerprint;
+        scf::str256 fingerprint;
 
         for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
 
@@ -2576,7 +2573,7 @@ public:
         std::cout << "\n[Drive Fingerprinting]\n";
         const std::string drive_name_fingerprinting = ListDrivesUtil::listDrives(true);
 
-        DriveMetadataStruct::DriveMetadata metadata = getMetadata(drive_name_fingerprinting);
+        DriveMetadataStruct::DriveMetadata metadata = getMetadata(scf::to_str256(drive_name_fingerprinting));
 
         LOG_INFO("Retrieved metadata for drive: " + drive_name_fingerprinting);
 
@@ -2587,7 +2584,7 @@ public:
             *metadata.serial + "|" +
             *metadata.uuid;
 
-        const std::string fingerprint = fingerprinting(combined_metadata);
+        const scf::str256 fingerprint = fingerprinting(scf::to_str2048(combined_metadata));
 
         LOG_INFO("Generated fingerprint for drive: " + drive_name_fingerprinting);
 
@@ -2604,7 +2601,7 @@ public:
 
 static void Info() {
     int setw_for_version;
-    if (VERSION.find_last_of("_dev")) { setw_for_version = 88; } else { setw_for_version = 92; }
+    if (VERSION.rfind("_dev") != scf::str_t::npos) { setw_for_version = 92; } else { setw_for_version = 88; }
     std::cout << "\n┌───────────────────────────────────────────────────" << BOLD << " Info " << RESET << "───────────────────────────────────────────────────┐\n";
     std::cout << "│ Welcome to Linux Drive Manager (DMgr / LDM) — a program for Linux to view and operate your storage devices." <<                          "│\n"; 
     std::cout << "│ Warning! You should know the basics about drives so you don't lose any data." <<                                        std::setw(35) << "│\n";
@@ -2708,7 +2705,7 @@ int main(int argc, char* argv[]) {
             Globals::g_config_src_path = argv[i + 1];
             i++;
 
-            std::string val_config_src_path = filePathHandler(Globals::g_config_src_path);
+            scf::str<986> val_config_src_path = filePathHandler(Globals::g_config_src_path);
 
             Globals::g_config_src_path = val_config_src_path;
 

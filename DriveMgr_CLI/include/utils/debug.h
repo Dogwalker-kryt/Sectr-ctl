@@ -62,7 +62,7 @@ inline const char* errorMessage(ErrorCode code) {
     }
 }
 
-inline int printError(ErrorCode code, const std::string& extra_msg, const char* file, int line, const char* func) {
+inline int printError(ErrorCode code, const scf::str2048& extra_msg, const char* file, int line, const char* func) {
     std::cerr << Color::red_err() 
               << Color::bold_err()
               << "[ERROR] " << Color::reset_err() << Color::red_err() << errorMessage(code)

@@ -98,8 +98,9 @@ public:
 
         } else {
 
-            if (!result.output.empty())
+            if (!result.output.empty()) {
                 std::cout << result.output << "\n";
+            }
 
         }
         return result;
@@ -121,16 +122,16 @@ public:
 
             std::cout << LEAVETERMINALSCREEN;
             throw std::runtime_error("Command failed: " + cmd + "\nExit code: " + std::to_string(res.exit_code) + "\nOutput:\n" + res.output);
-
+            
         }
         return res;
     }
 
-    static inline CmdExecResult run_spinner(const std::string &cmd) {
+    static inline CmdExecResult run_spinner(const str1024 &cmd) {
         return run(cmd, false, ExecMode::PROGRESS);
     }
 
-    static inline CmdExecResult run_sudo_spinner(const std::string &cmd) {
+    static inline CmdExecResult run_sudo_spinner(const str1024 &cmd) {
         return run(cmd, true, ExecMode::PROGRESS);
     }
 };
@@ -138,7 +139,7 @@ public:
 // Quick helpers for common patterns
 /** 
  * @brief runs ``` cmd ``` command
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC(cmd);
@@ -151,7 +152,7 @@ public:
 
 /** 
  * @brief runs ``` cmd ``` command as Sudo user
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC_SUDO(cmd);
@@ -160,7 +161,7 @@ public:
 
 /** 
  * @brief runs ``` cmd ``` command with no text ouput printed to the terminal
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC_QUIET(cmd);
@@ -169,7 +170,7 @@ public:
 
 /** 
  * @brief runs ``` cmd ``` command as Sudo with no text ouput printed to the terminal
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC_QUIET_SUDO(cmd);
@@ -178,7 +179,7 @@ public:
 
 /** 
  * @brief runs ``` cmd ``` command, if commands fails throws std::runtime_error
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC_OR_THROW(cmd);
@@ -187,7 +188,7 @@ public:
 
 /** 
  * @brief runs ``` cmd ``` command with spinner
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC_SPINNER(cmd);
@@ -196,7 +197,7 @@ public:
 
 /** 
  * @brief runs ``` cmd ``` command as Sudo with spinner
- * @param cmd as std::string 
+ * @param cmd as scf::str1024 
  * @returns res.output, res.success, res.exit_code
  * @note 
  * auto res = EXEC_SPINNER(cmd);

@@ -5,14 +5,16 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <optional>
+#include "scf_str.hpp"
 
+using namespace scf;
 
 class EnvSys {
 private:
     #define LEAVETERMINALSCREEN "\033[?1049l"
     #define PATH_MAX 4096
 
-    static inline std::string getExecutablePath() {
+    static inline str2048 getExecutablePath() {
         char buf[PATH_MAX];
         ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
 
@@ -23,11 +25,11 @@ private:
     
         }
         buf[len] = '\0';
-        return std::string(buf);
+        return to_str2048(buf);
     }
 
     static inline std::filesystem::path computeAppRoot() {
-        auto exe = std::filesystem::path(getExecutablePath());
+        auto exe = std::filesystem::path(to_std_str(getExecutablePath()));
 
         return exe.parent_path().parent_path().parent_path();
     }

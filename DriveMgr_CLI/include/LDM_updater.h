@@ -39,7 +39,7 @@ private:
      * @brief Parses version string (e.g., "v0.9.17.15") into version components
      * @param v version string from #define VERSION
      */
-    static Version_int parseVersionVals(const std::string &v);
+    static Version_int parseVersionVals(const str16 &v);
 
     /**
      * @brief Compares the local version with the latest released one on github
@@ -52,14 +52,14 @@ private:
      * @brief Fetches the latest release version from GitHub API
      * @return version string (e.g., "v0.9.17.15") or empty string on error
      */
-    static std::string getVersionGithub();
+    static str64 getVersionGithub();
 
 public:
     /**
      * @brief Main updater function - checks GitHub for new releases
      * @param LOCAL_VERSION the current version from #define VERSION
      */
-    static void updaterMain(const std::string &LOCAL_VERSION);
+    static void updaterMain(const str16 &LOCAL_VERSION);
 };
 
 #endif

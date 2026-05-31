@@ -45,6 +45,10 @@
 #include "ui/TermiosIO.h"
 #include "utils/StringUtils.hpp"
 
+#include "scf_str.hpp"
+#include "scf_io.hpp"
+
+using namespace scf;
 
 // ==================== Color ====================
 namespace Color {
@@ -70,7 +74,7 @@ namespace Color {
 #define BOLD    Color::bold()
 #define INVERSE Color::inverse()
 
-const std::unordered_map<std::string, std::string> available_colores {
+const std::unordered_map<str16, str8> available_colores {
     {"RED", RED},
     {"GREEN", GREEN},
     {"YELLOW", YELLOW},
@@ -121,46 +125,46 @@ private:
      * Logs to ~/.local/share/DriveMgr/data/log.dat with format: [DD-MM-YYYY HH:MM] event: <operation>
      * Creates log directory if it doesn't exist. Respects SUDO_USER for proper file ownership.
      */
-    static void log(LogType type, const std::string& operation, const char* func);
+    static void log(LogType type, const str1024 &operation, const char* func);
 public:
 
     /**
      * @brief Logs and Error
      * @param msg the Message to be logged in the log file
      */
-    static void error(const std::string &msg, const char* func);
+    static void error(const str2048 &msg, const char* func);
 
     /**
      * @brief Logs an Warning
      * @param msg the Message to be logged in the log file
      */
-    static void warning(const std::string &msg, const char* func);
+    static void warning(const str2048 &msg, const char* func);
 
     /**
      * @brief Logs an  Info
      * @param msg the Message to be logged in the log file
      */
-    static void info(const std::string &msg, const char* func);
+    static void info(const str2048 &msg, const char* func);
 
     /**
      * @brief Logs an Successs
      * @param msg the Message to be logged in the log file
      */    
-    static void success(const std::string &msg, const char* func);
+    static void success(const str2048 &msg, const char* func);
 
     /**
      * @brief Logs an dry run
      * @param msg the Message to be logged in the log file
      */ 
-    static void dry_run(const std::string &msg, const char* func);
+    static void dry_run(const str2048 &msg, const char* func);
 
     /**
      * @brief Logs an exec
      * @param msg the Message to be logged in the log file
      */ 
-    static void exec(const std::string &msg, const char* func);
+    static void exec(const str2048 &msg, const char* func);
 
-    static void clearLoggs(const std::string& path);
+    static void clearLoggs(const std::string &path);
 };
 
 /**
@@ -204,15 +208,15 @@ public:
 class DriveMetadataStruct {
 public:    
     struct DriveMetadata {
-        std::optional<std::string> name;
-        std::optional<std::string> size;
-        std::optional<std::string> model;
-        std::optional<std::string> serial;
-        std::optional<std::string> type;
-        std::optional<std::string> mountpoint;
-        std::optional<std::string> vendor;
-        std::optional<std::string> fstype;
-        std::optional<std::string> uuid;
+        std::optional<str512> name;
+        std::optional<str256> size;
+        std::optional<str128> model;
+        std::optional<str128> serial;
+        std::optional<str32> type;
+        std::optional<str2048> mountpoint;
+        std::optional<str64> vendor;
+        std::optional<str32> fstype;
+        std::optional<str128> uuid;
     };
 
     /**
@@ -351,19 +355,19 @@ namespace InputValidation {
  * @param file_path The relative file path to be handled in home dir (e.g., "/.config/myapp/config.dat").
  * @returns the ready to use file path with
  */
-std::string filePathHandler(const std::string &file_path);
+str1024 filePathHandler(const str<986> &file_path);
 
 /**
  * @brief Generates a random 10-character confirmation key consisting of uppercase letters, lowercase letters, and digits.
  * @return A randomly generated confirmation key as a string.
  */
-std::string confirmationKeyGenerator();
+fxdstr<10> confirmationKeyGenerator();
 
 /**
  * @brief Prompts the user for a yes/no confirmation with a custom message.
  * @param prompt The message to display to the user when asking for confirmation.
  */
-bool askForConfirmation(const std::string &prompt);
+bool askForConfirmation(const str1024 &prompt);
 
 /**
  * @brief This is the End question that is promted when a function failed/finished
@@ -391,7 +395,7 @@ bool checkRootMetadata();
  * @param path The file path to check.
  * @return true if the file exists, false otherwise.
  */
-static bool fileExists(const std::string& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
+static bool fileExists(const str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
 
 
 

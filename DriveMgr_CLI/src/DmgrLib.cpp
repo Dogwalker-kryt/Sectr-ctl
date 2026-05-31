@@ -23,7 +23,7 @@ const char* Logger::logMessage(LogType log_type) {
     }
 }
 
-void Logger::log(LogType type, const std::string& operation, const char* func) {
+void Logger::log(LogType type, const str1024 &operation, const char* func) {
         if (Globals::g_no_log == false) {
 
             auto now = std::chrono::system_clock::now();
@@ -32,7 +32,7 @@ void Logger::log(LogType type, const std::string& operation, const char* func) {
 
             std::strftime(timeStr, sizeof(timeStr), "%d-%m-%Y %H:%M", std::localtime(&currentTime));
 
-            std::string log_msg = "[" + std::string(timeStr) + "] event: " + logMessage(type) + operation + " (location: " + std::string(func) + ")";
+            str2048 log_msg = "[" + to_str64(timeStr) + "] event: " + to_str16(logMessage(type)) + operation + " (location: " + to_str32(func) + ")";
 
             std::ofstream log_file(Globals::log_path, std::ios::app);
 
@@ -49,36 +49,35 @@ void Logger::log(LogType type, const std::string& operation, const char* func) {
         }
     }
 
-void Logger::error(const std::string &msg, const char* func) {
+void Logger::error(const str2048 &msg, const char* func) {
     log(LogType::ERROR, msg, func);
 }
 
-void Logger::warning(const std::string &msg, const char* func) {
+void Logger::warning(const str2048 &msg, const char* func) {
     log(LogType::WARNING, msg, func);
 }
 
-void Logger::info(const std::string &msg, const char* func) {
+void Logger::info(const str2048 &msg, const char* func) {
     log(LogType::INFO, msg, func);
 }
 
-void Logger::success(const std::string &msg, const char* func) {
+void Logger::success(const str2048 &msg, const char* func) {
     log(LogType::SUCCESS, msg, func);
 }
 
-void Logger::dry_run(const std::string &msg, const char* func) {
+void Logger::dry_run(const str2048 &msg, const char* func) {
     log(LogType::DRYRUN, msg, func);
 }
 
-void Logger::exec(const std::string &msg, const char* func) {
+void Logger::exec(const str2048 &msg, const char* func) {
     log(LogType::EXEC, msg, func);
 }
 
-void Logger::clearLoggs(const std::string& path) {
+void Logger::clearLoggs(const std::string &path) {
     std::ifstream in(path);
     if (!in) return;
 
     std::vector<std::string> keep;
-
     std::string line;
 
     while (std::getline(in, line)) {
@@ -104,8 +103,8 @@ void Logger::clearLoggs(const std::string& path) {
 
 
 // ========= helper/validtion/runtime error =========
-
-std::string filePathHandler(const std::string &file_path) {
+// idk if its used so for now no fxdstr
+str1024 filePathHandler(const str<986> &file_path) {
     const char* sudo_user = getenv("SUDO_USER");
     const char* user_env = getenv("USER");
     const char* username = sudo_user ? sudo_user : user_env;
@@ -120,12 +119,12 @@ std::string filePathHandler(const std::string &file_path) {
 
     if (!pw) {
         std::cerr << RED << "[ERROR] Could not get home directory for user: " << username << RESET << "\n";
-        LOG_ERROR("Failed to get home directory for user: " + std::string(username));
+        LOG_ERROR("Failed to get home directory for user: " + to_str64(username));
         return "";
     }
 
-    std::string homeDir = pw->pw_dir;
-    std::string path = homeDir + file_path;
+    str1024 homeDir = pw->pw_dir;
+    str1024 path = homeDir + file_path;
     
     return path;
 }
@@ -138,7 +137,7 @@ std::string readLine() {
 
     if (!std::getline(std::cin, s)) {
         
-        ERR(ErrorCode::IOError, "std::getline failed");
+        ERR(ErrorCode::IOError, "std::getline() failed");
         LOG_ERROR("std::getline() failed");
         return "";
     }
@@ -318,9 +317,9 @@ namespace InputValidation {
 
         }
 
-        if (string_size >= 1) {
+        if (s.size() > string_size && string_size > 0) {
 
-            s.resize(string_size);
+            s = s.substr(0, string_size);
         
         }
 
@@ -331,7 +330,7 @@ namespace InputValidation {
 
 // ==================== Side/Helper Functions ====================
 
-std::string confirmationKeyGenerator() {
+str<10> confirmationKeyGenerator() {
     std::array<char, 62> chars_for_key = {
         'a','b','c','d','e','f','g','h','i','j',
         'k','l','m','n','o','p','q','r','s','t',
@@ -346,9 +345,7 @@ std::string confirmationKeyGenerator() {
 
     std::uniform_int_distribution<> dist(0, chars_for_key.size() - 1);
 
-    std::string generated_key;
-
-    generated_key.reserve(10);
+    str<10> generated_key;
 
     for (int i = 0; i < 10; i++) {
         generated_key += chars_for_key[dist(gen)];
@@ -357,7 +354,7 @@ std::string confirmationKeyGenerator() {
     return generated_key;
 }
 
-bool askForConfirmation(const std::string &prompt) {
+bool askForConfirmation(const str1024 &prompt) {
     std::cout << prompt << "(y/n)\n";
     auto confirm = InputValidation::getChar({'y', 'n'});
     if (!confirm.has_value()) return false;

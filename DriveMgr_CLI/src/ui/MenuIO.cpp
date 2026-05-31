@@ -22,7 +22,7 @@ int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::s
         std::string innerStr = inner.str();
 
         if (menuItems[i].first == 0) {
-            innerStr = Globals::g_THEME_COLOR + innerStr + RESET;
+            innerStr = scf::to_std_str(Globals::g_THEME_COLOR) + innerStr + RESET;
         }
 
         // Print right border and newline
@@ -46,7 +46,7 @@ int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::s
             std::string innerStr = inner.str();
 
             if (menuItems[i].first == 0) {
-                innerStr = Globals::g_THEME_COLOR + innerStr + RESET;
+                innerStr = scf::to_std_str(Globals::g_THEME_COLOR) + innerStr + RESET;
             }
 
             std::cout << Globals::g_THEME_COLOR << "│ " << RESET;
