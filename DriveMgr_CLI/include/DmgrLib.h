@@ -397,6 +397,22 @@ bool checkRootMetadata();
  */
 static bool fileExists(const str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
 
+/**
+ * @brief Lamba that extracts 
+ */
+inline auto extractt = [](const str16& key, const auto &res_output) -> str32 {
+    str32 search = key + "=\"";
+    size_t start = res_output.find(search);
 
+    if (start == str_t::npos) return "N/A";
+            
+    start += search.length();
+    size_t end = res_output.find("\"", start);
+
+    if (end == str_t::npos) return "N/A";
+            
+    str32 val = res_output.substr(start, end - start);
+    return val.empty() ? "N/A" : val;
+};
 
 #endif 

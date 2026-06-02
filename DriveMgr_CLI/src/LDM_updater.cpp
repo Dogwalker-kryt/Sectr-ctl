@@ -2,9 +2,9 @@
 
 
 
-LDMUpdater::Version_int LDMUpdater::parseVersionVals(const str16 &v) {
+LDMUpdater::Version_int LDMUpdater::parseVersionVals(const str_t &v) {
     Version_int ver;
-    str16 ver_str = v;
+    str_t ver_str = v;
 
     if (!ver_str.empty() && (ver_str[0] == 'v' || ver_str[0] == 'V')) {
         ver_str.erase(0, 1);
@@ -62,8 +62,8 @@ void LDMUpdater::updaterMain(const str16 &LOCAL_VERSION) {
 
     std::string dev_suffix;
 
-    if (LOCAL_VERSION.find("dev") != std::string::npos || LOCAL_VERSION.find("dev") != std::string::npos) {
-        dev_suffix = YELLOW + "\n[INFO]" + RESET + "Local version contains " + BOLD + "'dev'." + RESET + " Local version is a developer/custom/other release build\n";    
+    if (LOCAL_VERSION.find("dev") != scf::str_t::npos || LOCAL_VERSION.find("dev") != scf::str_t::npos) {
+        dev_suffix = YELLOW + "\n[INFO]" + RESET + " Local version contains " + BOLD + "'dev'." + RESET + " Local version is a developer/custom/other release build\n";    
     }
 
     Version_int local_version = parseVersionVals(LOCAL_VERSION);
@@ -81,14 +81,14 @@ void LDMUpdater::updaterMain(const str16 &LOCAL_VERSION) {
             << "If you're happy with your current version, feel free to keep using it — no pressure at all.\n";
 
     } else if (cmp > 0) {
-        std::cout << YELLOW << "\n[INFO]" << RESET << "Local version is newer (probably dev build or custom build)\n";
+        std::cout << YELLOW << "\n[INFO]" << RESET << " Local version is newer (probably dev build or custom build)\n";
 
         if (!dev_suffix.empty()) {
             std::cout << dev_suffix;
         }
 
     } else {
-        std::cout << GREEN << "\n[INFO]" << RESET << "You are up to date.\n";
+        std::cout << GREEN << "\n[INFO]" << RESET << " You are up to date.\n";
 
         if (!dev_suffix.empty()) {
             std::cout << dev_suffix;

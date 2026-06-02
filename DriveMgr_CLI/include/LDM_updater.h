@@ -19,7 +19,6 @@
 #ifndef LDM_UPDATER
 #define LDM_UPDATER
 
-#include "DmgrLib.h"
 #include "cmd_exec/exec_cmd.h"
 
 
@@ -39,7 +38,7 @@ private:
      * @brief Parses version string (e.g., "v0.9.17.15") into version components
      * @param v version string from #define VERSION
      */
-    static Version_int parseVersionVals(const str16 &v);
+    static Version_int parseVersionVals(const str_t &v);
 
     /**
      * @brief Compares the local version with the latest released one on github

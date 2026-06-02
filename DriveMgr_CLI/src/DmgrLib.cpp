@@ -369,7 +369,7 @@ bool askForConfirmation(const str1024 &prompt) {
 }
 
 void menuQues(bool& running) {   
-    std::cout << BOLD <<"\nPress '1' for returning to the main menu, '2' to exit:\n" << RESET;
+    scf::io::println(BOLD, "\nPress '1' for returning to the main menu, '2' to exit:\n", RESET);
 
     auto menuques = InputValidation::getInt({1, 2});
 
@@ -400,7 +400,7 @@ bool checkRoot() {
 
 bool checkRootMetadata() {
     if (!isRoot()) {
-        std::cerr << YELLOW << "[WARNING] Running without root may limit functionality. For full access, please run with 'sudo'.\n" << RESET;
+        scf::io::println_cerr(YELLOW, "[WARNING] Running without root may limit functionality. For full access, please run with 'sudo'.\n", RESET);
         LOG_WARNING("Running without root privileges");
         return false;
     }

@@ -1,3 +1,21 @@
+/* 
+ * SCF STR - Stack C++ Framework Fixed String type
+ * Copyright (C) 2026 Dogwalker-kryt
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 #include <array>
@@ -6,7 +24,8 @@
 #include <algorithm>
 #include <iterator>
 #include <utility>
-#include <cstdio> // for snprintf
+#include <cstdio> 
+#include <cstdint>
 #include <string>
 #include <type_traits>
 #include <string_view>
@@ -253,6 +272,29 @@ public:
         return replace(pos, count, str.c_str());
     }
 
+    // (modifier) actual size
+
+    // size_t get_actual_size() const {
+    //     static constexpr size_t sizes[] = {8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+    //     size_t actual = len + 1;
+
+    //     for (size_t s : sizes)
+    //         if (actual <= s)
+    //             return s;
+
+    //     throw std::length_error("fxdstr::get_actual_size - actual size of string somehow is exeding 4096");
+    //     return SIZE_MAX;
+    // }
+
+    // // resize to actual size (use with caution, as it may cause stack overflow if actual size is large)
+    // void resize_to_actual_size() {
+    //     size_t actual_size = get_actual_size();
+    //     if (actual_size > N) throw std::length_error("fxdstr::resize_to_actual_size - actual size exceeds capacity");
+    //     // create new str variable with the actual size and copy the data over with the same name as the original
+    //     fxdstr<actual_size> resized(*this);
+    //     *this = resized; // assign the resized string back to this
+    // }
+
     // --- Comparison ---
     int compare(const fxdstr& other) const {
         size_t n = std::min(len, other.len);
@@ -332,6 +374,8 @@ public:
     }
 
     // --- Search ---
+
+    // find returns npos if not found, otherwise returns the index of the first occurrence
     size_t find(const char* str, size_t pos = 0) const {
         size_t n = std::strlen(str);
         if (pos > len || n == 0 || n > len) return npos;
@@ -340,15 +384,18 @@ public:
         }
         return npos;
     }
+    // find returns npos if not found, otherwise returns the index of the first occurrence
     size_t find(char c, size_t pos = 0) const {
         for (size_t i = pos; i < len; ++i) {
             if (buffer_[i] == c) return i;
         }
         return npos;
     }
+    // find returns npos if not found, otherwise returns the index of the first occurrence
     size_t find(const std::string& str, size_t pos = 0) const {
         return find(str.c_str(), pos);
     }
+    // find returns npos if not found, otherwise returns the index of the first occurrence
     size_t find(std::string_view sv, size_t pos = 0) const {
         if (sv.empty() || sv.size() > len) return npos;
         if (pos > len || pos + sv.size() > len) return npos;
@@ -357,6 +404,11 @@ public:
         }
         return npos;
     }
+    template<size_t M>
+    size_t find(const fxdstr<M>& str, size_t offset = 0) const {
+        return find(std::string_view(str), offset);
+    }
+    // same as find but just searches from right to left
     size_t rfind(const char* str, size_t pos = npos) const {
         size_t n = std::strlen(str);
         if (n == 0 || n > len) return npos;
@@ -368,6 +420,7 @@ public:
         }
         return npos;
     }
+    // same as find but just searches from right to left
     size_t rfind(char c, size_t pos = npos) const {
         if (len == 0) return npos;
         if (pos == npos) pos = len - 1;
@@ -378,8 +431,27 @@ public:
         if (buffer_[0] == c) return 0;
         return npos;
     }
+    size_t rfind(const std::string& str, size_t pos = npos) const {
+        return rfind(str.c_str(), pos);
+    }
+    size_t rfind(std::string_view sv, size_t pos = npos) const {
+        if (sv.empty() || sv.size() > len) return npos;
+        if (pos == npos) pos = len;
+        if (pos > len) pos = len;
+        for (size_t i = pos; i > 0; --i) {
+            if (i - 1 >= len - sv.size() && i - 1 <= len) continue;
+            if (std::memcmp(buffer_.data() + i - sv.size(), sv.data(), sv.size()) == 0) return i - sv.size();
+        }
+        return npos;
+    }
+    template<size_t M>
+    size_t rfind(const fxdstr<M>& str, size_t offset = npos) const {
+        return rfind(std::string_view(str), offset);
+    }
 
     // --- conversion by methods ---
+
+    // pretty self explanatory
     template<size_t J>
     std::string to_std_str() {
         return std::string(buffer_.data(), len);
@@ -391,8 +463,10 @@ public:
     // Conversion to std::string
     operator std::string() const { return std::string(buffer_.data(), len); }
 };
-// --- Non-member functions ---
 
+
+
+// --- Non-member functions ---
 
 // fxdstr + fxdstr
 template<size_t N, size_t M>
@@ -439,23 +513,6 @@ fxdstr<1 + N> operator+(char lhs, const fxdstr<N>& rhs) {
     return result;
 }
 
-// // --- std::string interop (only RHS) ---
-
-// template<size_t N>
-// inline std::string operator+(const fxdstr<N>& lhs, const char* rhs) {
-//     std::string result(lhs.c_str());
-//     result += rhs;
-//     return result;
-// }
-
-// template<size_t N>
-// inline std::string operator+(const fxdstr<N>& lhs, const std::string& rhs) {
-//     std::string result(lhs.c_str());
-//     result += rhs;
-//     return result;
-// }
-
-
 // --- Stream Operators ---
 template<size_t N>
 std::ostream& operator<<(std::ostream& os, const fxdstr<N>& str) {
@@ -489,27 +546,50 @@ namespace std {
 
 namespace scf {
     // --- Convenient aliases ---
-    using str8 = fxdstr<8>;
-    using str16 = fxdstr<16>;
-    using str32 = fxdstr<32>;
-    using str64 = fxdstr<64>;
-    using str128 = fxdstr<128>;
-    using str256 = fxdstr<256>;
-    using str512 = fxdstr<512>;
-    using str1024 = fxdstr<1024>;
-    using str2048 = fxdstr<2048>;
-    using str4096 = fxdstr<4096>;
 
+    // pre fixed sizes
+
+    using str8 = fxdstr<8>; // 8 characters, for very short strings or identifiers
+    using str16 = fxdstr<16>; // 16 characters, for short strings, small identifiers, or short metadata fields
+    using str32 = fxdstr<32>; // 32 characters, for medium-length strings, common metadata fields, or short combined metadata
+    using str64 = fxdstr<64>; // 64 characters, for longer strings, larger buffers fields, or combined metadata
+    using str128 = fxdstr<128>; // 128 characters, for long strings, large buffer fields, or combined/normal metadata. 
+    using str256 = fxdstr<256>; // 256 characters, for very long strings, large buffer fields, or combined metadata. Use with caution due to potential stack overflow on 32-bit systems
+    using str512 = fxdstr<512>; // 512 characters, for very long strings, large buffer fields, or combined metadata. Use with caution due to potential stack overflow on 32-bit systems
+    #if INTPTR_MAX == INT32_MAX
+        using str1024 = fxdstr<1024>; // (32-bit) 1KB string, should be enough for most metadata fields. Use of str1024 is not recommended on 32-bit systems  
+    #else
+        using str1024 = fxdstr<1024>; //(64-bit) 1KB string, should be enough for most metadata fields
+    #endif
+    
+    // big sizes
+
+    #if INTPTR_MAX == INT64_MAX
+        using str2048 = fxdstr<2048>; // (64-bit) 2KB string, for larger metadata fields or combined metadata. Caution: heavy use of it may lead to stack overflow
+        using str4096 = fxdstr<4096>; // (64-bit) 4KB string, for very large metadata, combined metadata, big buffers. Use with extreme caution due to high risk of stack overflow
+    #endif
+
+    // dynamic fixed sizes 
+
+    // generic alias for fxdstr with size N, can be used for template parameters. 32-bit systems should generally not use sizes larger than 1024 to avoid stack overflow, while 64-bit systems can safely use sizes up to 2048 or 4096. Use with caution on 32-bit systems.
     template<size_t N>
-    using fxdstr_t = fxdstr<N>;
+    using fxdstr_t = fxdstr<N>; 
 
+    // default string type, with size N. same as fxdstr_t<N>, with the only difference you have to type less. 32-bit systems should generally not use sizes larger than 1024 to avoid stack overflow, while 64-bit systems can safely use sizes up to 2048 or 4096. Use with caution on 32-bit systems.
     template<size_t N>
-    using str = fxdstr<N>; // default string type, with size N
+    using str = fxdstr<N>; 
 
-    using str_t = fxdstr<256>; // alias for default string type, with size 256
+    #if INTPTR_MAX == INT32_MAX
+        using str_t = fxdstr<128>; // alias for default string type, with size 128 (32-bit system default)
+    #elif INTPTR_MAX == INT64_MAX
+        using str_t = fxdstr<256>; // alias for default string type, with size 256 (64-bit system default)
+    #else
+        using str_t = fxdstr<128>; // fallback to 128 if pointer size is unknown
+    #endif
+
 
     // --- to_scf_str for arithmetic types ---
-    // Specialization for std::string
+    // Specialization for std::string. converts a STL-string to fxdstr
     template<size_t N>
     fxdstr<N> to_scf_str(const std::string& value) {
         fxdstr<N> out;
@@ -522,7 +602,7 @@ namespace scf {
         return out;
     }
 
-    // Specialization for const char*
+    // Specialization for const char*. converts a C-string to fxdstr
     template<size_t N>
     fxdstr<N> to_scf_str(const char* value) {
         fxdstr<N> out;
@@ -537,7 +617,7 @@ namespace scf {
         return out;
     }
 
-    // Generic to_scf_str for arithmetic types with improved format handling
+    // Generic to_scf_str for arithmetic types with improved format handling. converts a value to fxdstr
     template<size_t N, typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
     fxdstr<N> to_scf_str(const T& value) {
         fxdstr<N> out;
@@ -566,7 +646,7 @@ namespace scf {
         return out;
     }
 
-    // Specialization for bool
+    // Specialization for bool. converts a boolean to fxdstr
     template<size_t N>
     fxdstr<N> to_scf_str(const bool& value) {
         fxdstr<N> out;
@@ -611,3 +691,22 @@ namespace scf {
         return std::string(scf_str.c_str(), scf_str.size());
     }
 }
+
+
+// compiler warnings for 32-bit systems
+
+#if INTPTR_MAX == INT32_MAX
+
+template<>
+struct [[deprecated("fxdstr<1024> is discouraged on 32-bit systems due to stack limits")]]
+fxdstr<1024>;
+
+template<>
+struct [[deprecated("fxdstr<2048> is not supported on 32-bit systems")]]
+fxdstr<2048>;
+
+template<>
+struct [[deprecated("fxdstr<4096> is not supported on 32-bit systems")]]
+fxdstr<4096>;
+
+#endif
