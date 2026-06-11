@@ -35,8 +35,8 @@ but to add a safety and orchestration layer on top of them.
 
 ### CLI:
 
-- Experimental: `v0.9.31.77`  
-  _(partialy migrating to scf framework)_
+- Experimental: `v0.9.35.84`  
+  _(partialy migrating to scf framework and some other stuff)_
 
 ### GUI (Not getting Updated anymore):
 
