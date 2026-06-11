@@ -20,7 +20,7 @@
 #pragma once
 
 #include <sys/wait.h>
-#include "../scf_str.hpp"
+#include "../scf/scf_str.hpp"
 
 struct ExecResult {
     int exit_code{ -1 };

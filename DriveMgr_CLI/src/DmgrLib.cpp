@@ -147,13 +147,13 @@ std::string readLine() {
 
 namespace InputValidation {
 
-    std::optional<int> getInt(const std::vector<int> &valid_ints) {
+    scf::optional<int> getInt(const std::vector<int> &valid_ints) {
         const std::string s_input = readLine();
         
         if (!std::cin.good()) {
 
             ERR(ErrorCode::IOError, "Failed to read input");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -161,7 +161,7 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Input cannot be empty");
             LOG_ERROR("Input is empty");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -174,7 +174,7 @@ namespace InputValidation {
 
                 ERR(ErrorCode::InvalidInput, "no characters can be used as input");
                 LOG_ERROR("no characters can be used as input");
-                return std::nullopt;
+                return scf::nullopt;
 
             }
 
@@ -182,7 +182,7 @@ namespace InputValidation {
 
                 ERR(ErrorCode::InvalidInput, "Input not in allowed integer list");
                 LOG_ERROR("Input not in allowed integer list -> validateIntInput");
-                return std::nullopt;
+                return scf::nullopt;
 
             }
 
@@ -192,34 +192,34 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Conversion from string to int failed");
             LOG_ERROR("Conversion from string to int failed -> validateIntInput");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
     }
 
-    std::optional<int> getInt(int min_value, int max_value) {
+    scf::optional<int> getInt(int min_value, int max_value) {
         const auto val = getInt({});
-        if (!val) return std::nullopt;
+        if (!val) return scf::nullopt;
 
         if (*val < min_value || *val > max_value) {
 
             ERR(ErrorCode::InvalidInput, "Input outside allowed range");
             LOG_ERROR("Input outside allowed range");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
         return val;
     }
 
-    std::optional<unsigned int> getUint() {
+    scf::optional<unsigned int> getUint() {
         std::string s_input = readLine();
         
         // Case 1: getline failed → s_input == "" AND stream is bad
         if (!std::cin.good()) {
 
             ERR(ErrorCode::IOError, "Failed to read input");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -228,7 +228,7 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Input cannot be empty");
             LOG_ERROR("Input is empty");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -241,14 +241,14 @@ namespace InputValidation {
 
                 ERR(ErrorCode::InvalidInput, "only 1 character can be used as input");
                 LOG_ERROR("no characters can be used as input");
-                return std::nullopt;
+                return scf::nullopt;
 
             }
 
             if (tmp > std::numeric_limits<unsigned int>::max()) {
                 ERR(ErrorCode::OutOfRange, "Number too large for unsigned int");
                 LOG_ERROR("Number too large for unsigned int");
-                return std::nullopt;
+                return scf::nullopt;
             }
 
             return static_cast<unsigned int>(tmp);
@@ -257,19 +257,19 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Conversion from string to uint failed");
             LOG_ERROR("Conversion from string to uint failed");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
     }
 
-    std::optional<char> getChar(const std::vector<char> &valid_chars) {
+    scf::optional<char> getChar(const std::vector<char> &valid_chars) {
         const std::string s_input = readLine();
 
         if (!std::cin.good()) {
 
             ERR(ErrorCode::IOError, "Failed to read input");
             LOG_ERROR("std::getline() failed");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -279,7 +279,7 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Input must be exactly one character");
             LOG_ERROR("Input has more than one non-whitespace character");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -289,21 +289,21 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Character not allowed");
             LOG_ERROR("Char not in allowed list");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
         return c_input;
     }
 
-    std::optional<std::string> getString(const uint32_t &string_size) {
+    scf::optional<std::string> getString(const uint32_t &string_size) {
         const std::string s_input = readLine();
 
         if (!std::cin.good()) {
 
             ERR(ErrorCode::IOError, "Failed to read input");
             LOG_ERROR("std::getline() failed");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -313,7 +313,7 @@ namespace InputValidation {
 
             ERR(ErrorCode::InvalidInput, "Input cannot be emtpy");
             LOG_ERROR("Input cannot be emtpy");
-            return std::nullopt;
+            return scf::nullopt;
 
         }
 
@@ -369,7 +369,7 @@ bool askForConfirmation(const str1024 &prompt) {
 }
 
 void menuQues(bool& running) {   
-    scf::io::println(BOLD, "\nPress '1' for returning to the main menu, '2' to exit:\n", RESET);
+    scf::println(BOLD, "\nPress '1' for returning to the main menu, '2' to exit:\n", RESET);
 
     auto menuques = InputValidation::getInt({1, 2});
 
@@ -400,7 +400,7 @@ bool checkRoot() {
 
 bool checkRootMetadata() {
     if (!isRoot()) {
-        scf::io::println_cerr(YELLOW, "[WARNING] Running without root may limit functionality. For full access, please run with 'sudo'.\n", RESET);
+        scf::println_cerr(YELLOW, "[WARNING] Running without root may limit functionality. For full access, please run with 'sudo'.\n", RESET);
         LOG_WARNING("Running without root privileges");
         return false;
     }

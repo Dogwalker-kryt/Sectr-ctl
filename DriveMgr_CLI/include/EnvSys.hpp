@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <optional>
-#include "scf_str.hpp"
+#include "scf/scf_str.hpp"
 
 using namespace scf;
 
