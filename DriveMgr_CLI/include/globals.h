@@ -5,7 +5,7 @@
 #include <filesystem>
 #include "EnvSys.hpp"
 #include "ui/TermiosIO.h"
-#include "scf_str.hpp"
+#include "scf/scf_str.hpp"
 
 namespace Globals{
     // === color related globals ===

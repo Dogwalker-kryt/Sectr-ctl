@@ -41,12 +41,10 @@
 // Project headers
 #include "utils/debug.h"
 #include "globals.h"
-#include "EnvSys.hpp"
 #include "ui/TermiosIO.h"
 #include "utils/StringUtils.hpp"
 
-#include "scf_str.hpp"
-#include "scf_io.hpp"
+#include "scf/scf.hpp"
 
 using namespace scf;
 
@@ -208,30 +206,30 @@ public:
 class DriveMetadataStruct {
 public:    
     struct DriveMetadata {
-        std::optional<str512> name;
-        std::optional<str256> size;
-        std::optional<str128> model;
-        std::optional<str128> serial;
-        std::optional<str32> type;
-        std::optional<str2048> mountpoint;
-        std::optional<str64> vendor;
-        std::optional<str32> fstype;
-        std::optional<str128> uuid;
+        scf::optional<str512> name;
+        scf::optional<str256> size;
+        scf::optional<str128> model;
+        scf::optional<str128> serial;
+        scf::optional<str32> type;
+        scf::optional<str2048> mountpoint;
+        scf::optional<str64> vendor;
+        scf::optional<str32> fstype;
+        scf::optional<str128> uuid;
     };
 
     /**
      * @brief Clears all metadata fields of a DriveMetadata struct by resetting the optional values to std::nullopt.
      */
     static void clearMetadata(DriveMetadata& metadata) {
-        metadata.name = std::nullopt;
-        metadata.size = std::nullopt;
-        metadata.model = std::nullopt;
-        metadata.serial = std::nullopt;
-        metadata.type = std::nullopt;
-        metadata.mountpoint = std::nullopt;
-        metadata.vendor = std::nullopt;
-        metadata.fstype = std::nullopt;
-        metadata.uuid = std::nullopt;
+        metadata.name = scf::nullopt;
+        metadata.size = scf::nullopt;
+        metadata.model = scf::nullopt;
+        metadata.serial = scf::nullopt;
+        metadata.type = scf::nullopt;
+        metadata.mountpoint = scf::nullopt;
+        metadata.vendor = scf::nullopt;
+        metadata.fstype = scf::nullopt;
+        metadata.uuid = scf::nullopt;
     }
 };
 
@@ -298,7 +296,7 @@ namespace InputValidation {
      *         Contains the parsed integer on success, or std::nullopt if the input
      *         is empty, non-numeric, or out of range.
      */
-    std::optional<int> getInt(const std::vector<int> &valid_ints = {});
+    scf::optional<int> getInt(const std::vector<int> &valid_ints = {});
 
     /**
      * @ingroup InputValidation
@@ -316,9 +314,9 @@ namespace InputValidation {
      *         - Contains the parsed integer if it lies within the range.
      *         - std::nullopt otherwise.
      */
-    std::optional<int> getInt(int min_value, int max_value);
+    scf::optional<int> getInt(int min_value, int max_value);
 
-    std::optional<uint> getUint();
+    scf::optional<uint> getUint();
 
     /**
      * @brief Validates user input as a single character.
@@ -335,7 +333,7 @@ namespace InputValidation {
      *         - std::nullopt if the input is empty, longer than one character,
      *           or not part of the allowed character list.
      */
-    std::optional<char> getChar(const std::vector<char> &valid_chars = {});
+    scf::optional<char> getChar(const std::vector<char> &valid_chars = {});
 
     /**
      * @brief Validates user input as string
@@ -344,7 +342,7 @@ namespace InputValidation {
      * 
      * @param string_size if set, will only return the first n chars in the string
      */
-    std::optional<std::string> getString(const uint32_t &string_size = 0);
+    scf::optional<std::string> getString(const uint32_t &string_size = 0);
 }
 
 // ==================== Side/Helper Functions ====================
