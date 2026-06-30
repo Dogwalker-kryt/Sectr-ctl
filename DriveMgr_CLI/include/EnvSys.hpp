@@ -35,7 +35,7 @@ private:
     }
 
 public:
-    static inline std::filesystem::path appRoot() {
+    static inline std::filesystem::path &appRoot() {
         static std::filesystem::path root = computeAppRoot();
         
         return root;

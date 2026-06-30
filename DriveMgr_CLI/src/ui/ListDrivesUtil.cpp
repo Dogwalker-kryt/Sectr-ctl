@@ -68,7 +68,7 @@ str512 ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, 
     // Move cursor down past the table so next output prints normally
     int tableheight = total + 3;
     std::cout << "\033[" << tableheight << "B" << std::flush;
-    std::cout << "\n";
+    // std::cout << "\n";
 
     term.restoreTerminal();
 
@@ -89,11 +89,11 @@ void ListDrivesUtil::printDriveRow(int idx, const Row& r) {
 }
 
 void ListDrivesUtil::printDriveHeader() {
-    if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
-    std::cout << "\nAvailable Drives:";
+    // if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
+    std::cout << BOLD << "\nAvailable Drives:\n";
 
     // if (!Globals::g_no_color) std::cout << RESET;
-    std::cout << "\n";
+    // std::cout << "\n";
 
     std::cout << std::left << std::setw(5) << "#";
     if (Globals::g_no_color) std::cout << BOLD;
@@ -109,7 +109,7 @@ void ListDrivesUtil::printDriveHeader() {
 
     std::cout << "Status" << std::endl;
 
-    // if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
+    if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
     std::cout << std::string(90, '-') << "\n";
     std::cout << RESET;
 }

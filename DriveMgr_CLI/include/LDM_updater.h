@@ -51,14 +51,14 @@ private:
      * @brief Fetches the latest release version from GitHub API
      * @return version string (e.g., "v0.9.17.15") or empty string on error
      */
-    static str64 getVersionGithub();
+    static std::string getVersionGithub();
 
 public:
     /**
      * @brief Main updater function - checks GitHub for new releases
      * @param LOCAL_VERSION the current version from #define VERSION
      */
-    static void updaterMain(const str16 &LOCAL_VERSION);
+    static void updaterMain(const std::string &LOCAL_VERSION);
 };
 
 #endif

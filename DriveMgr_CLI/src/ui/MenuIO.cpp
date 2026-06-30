@@ -1,17 +1,38 @@
 #include "../ui/MenuIO.hpp"
 
 
-int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems) {
+int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems, std::string &version) {
     term.enableRawMode();
 
     int selected = 0;
     int total = (int)menuItems.size();
 
-    std::cout << "\033[2J\033[H" << std::flush;
-    std::cout << "Use Up/Down arrows and Enter to select an option.\n\n";
-    std::cout << Globals::g_THEME_COLOR << "┌─────────────────────────────────────────────────┐\n" << RESET;
-    std::cout << Globals::g_THEME_COLOR << "│" << RESET << BOLD << "              DRIVE MANAGEMENT UTILITY           " << RESET << Globals::g_THEME_COLOR << "│\n" << RESET;
-    std::cout << Globals::g_THEME_COLOR << "├─────────────────────────────────────────────────┤\n" << RESET;
+    scf::array<scf::str32, 3> header_names = {
+        "SECTR_CTL", "SECTR_CTL (debug)", "SECTR_CTL (stand alone)"
+    };
+
+    scf::str32 header_name = header_names[0];
+
+    if (Globals::g_debug == true) { header_name = header_names[1]; }
+    else if (Globals::stand_alone == true) { header_name = header_names[2]; }
+
+    const size_t header_name_len = header_name.length();
+    const size_t version_len = version.length();
+    const size_t free_space = 46; // free white space between left border and right border 
+    
+    const size_t total_header_len = header_name_len + version_len;
+    const float left_padding = (free_space - total_header_len) / 2;
+    const float right_padding = (free_space - left_padding) - total_header_len; // + 4, for the right border to alling with the box
+
+    scf::str32 sleft_padding(left_padding, ' ');
+    scf::str32 sright_padding(right_padding, ' ');
+    scf::str64 header_content = header_name + " " + scf::to_str32(version); 
+
+    scf::print_flush("\033[2J\033[H");
+    scf::println("Use Up/Down arrows and Enter to select an option.\n");
+    scf::println(Globals::g_THEME_COLOR, "┌─────────────────────────────────────────────────┐", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, BOLD, sleft_padding, header_content, sright_padding, RESET, Globals::g_THEME_COLOR, " │", RESET);
+    scf::println(Globals::g_THEME_COLOR, "├─────────────────────────────────────────────────┤", RESET);
     for (size_t i = 0; i < menuItems.size(); ++i) {
 
         std::cout << Globals::g_THEME_COLOR << "│ " << RESET;
@@ -84,17 +105,38 @@ int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::s
     return selected;
 }
 
-int MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems) {
+int MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems, std::string &version) {
     term.enableRawMode();
 
     int selected = 0;
     int total = (int)menuItems.size();
 
-    std::cout << "\033[2J\033[H" << std::flush;
-    std::cout << "Use Up/Down arrows and Enter to select an option.\n\n";
-    std::cout << "┌─────────────────────────────────────────────────────┐\n";
-    std::cout << "│" << BOLD << "                DRIVE MANAGEMENT UTILITY             " << RESET << "│\n";
-    std::cout << "├─────────────────────────────────────────────────────┤\n";
+    scf::array<scf::str32, 3> header_names = {
+        "SECTR_CTL", "SECTR_CTL (debug)", "SECTR_CTL (stand alone)"
+    };
+
+    scf::str32 header_name = header_names[0];
+
+    if (Globals::g_debug == true) { header_name = header_names[1]; }
+    else if (Globals::stand_alone == true) { header_name = header_names[2]; }
+
+    const size_t header_name_len = header_name.length();
+    const size_t version_len = version.length();
+    const size_t free_space = 46; // free white space between left border and right border 
+    
+    const size_t total_header_len = header_name_len + version_len;
+    const float left_padding = (free_space - total_header_len) / 2;
+    const float right_padding = (free_space - left_padding) - total_header_len + 4; // + 4, for the right border to alling with the box
+
+    scf::str32 sleft_padding(left_padding, ' ');
+    scf::str32 sright_padding(right_padding, ' ');
+    scf::str64 header_content = header_name + " " + scf::to_str32(version); 
+
+    scf::print_flush("\033[2J\033[H");
+    scf::println("Use Up/Down arrows and Enter to select an option.\n");
+    scf::println("┌─────────────────────────────────────────────────────┐");
+    scf::println("│ ", BOLD, sleft_padding, header_content, sright_padding, RESET, " │");
+    scf::println("├─────────────────────────────────────────────────────┤");
 
     for (size_t i = 0; i < menuItems.size(); ++i) {
 
@@ -161,11 +203,14 @@ void GenericMenuIO::printMenuLine(bool selected, const std::pair<int,std::string
     size_t item_len = num.length() + item.second.length();
     size_t padding  = (inner_width > item_len) ? (inner_width - item_len) : 0;
 
-    std::cout << "│ " << (selected ? "> " : "  ")
+    std::cout << Globals::g_THEME_COLOR << "│ " << RESET << (selected ? BOLD : RESET) << (selected ? "> " : "  ") 
             << num
             << item.second
             << std::string(padding, ' ')
-            << " │\n";
+            << RESET
+            << Globals::g_THEME_COLOR
+            << " │\n"
+            << RESET;
 }
 
 size_t GenericMenuIO::computeInnerWidth(const std::string& title, const std::vector<std::pair<int,std::string>>& items) {
@@ -182,7 +227,8 @@ size_t GenericMenuIO::computeInnerWidth(const std::string& title, const std::vec
 }
 
 void GenericMenuIO::printDash(size_t n) {
-    while (n--) std::cout << "─";
+    while (n--) std::cout << (Globals::g_no_color ? "" : Globals::g_THEME_COLOR) << "─";
+    scf::print(RESET);
 }
 
 int GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems) {
@@ -204,11 +250,11 @@ int GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vector<st
     size_t dash_right = dash_total - dash_left;
 
     // Title bar
-    std::cout << "\n┌";
+    scf::print(Globals::g_THEME_COLOR, "\n┌", RESET);
     printDash(dash_left);
-    std::cout << BOLD << title_pad << RESET;
+    scf::print(BOLD, title_pad, RESET);
     printDash(dash_right);
-    std::cout << "┐\n";
+    scf::print(Globals::g_THEME_COLOR, "┐\n", RESET);
 
     // Static items
     for (const auto& item : menuItems) {
@@ -218,9 +264,9 @@ int GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vector<st
     }
 
     // Bottom border
-    std::cout << "└";
+    std::cout << Globals::g_THEME_COLOR << "└";
     printDash(box_width);
-    std::cout << "┘\n";
+    std::cout << Globals::g_THEME_COLOR << "┘\n" << RESET;
 
     // Move cursor up to first item
     std::cout << "\r\033[" << (total + 1) << "A";

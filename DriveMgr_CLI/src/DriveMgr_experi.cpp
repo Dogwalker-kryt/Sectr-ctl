@@ -24,6 +24,7 @@
 // C++ libraries
 #include <regex>
 #include <cstdint>
+#include <csignal>
 
 // openssl includes
 #include <openssl/sha.h>
@@ -38,7 +39,8 @@
 #include "../include/ui/TerminalSize.hpp"
 
 // ==== definitions ====
-#define VERSION scf::str16("v0.9.35.84_dev")
+#define VERSION std::string("v0.9.38.89_dev")
+std::string version_str = VERSION;
 
 // ========== Partition Management ========== 
 
@@ -285,7 +287,7 @@ class PartitionsUtils {
 void listpartisions() { 
     const scf::str512 drive_name = ListDrivesUtil::listDrives(true); 
 
-    std::cout << "\nPartitions of drive " << drive_name << ":\n";
+    scf::lnprintln("\nPartitions of drive ", drive_name, ":");
 
     const str1024 cmd = "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE -n -p " + drive_name; 
     const auto res = EXEC_QUIET(cmd); 
@@ -311,7 +313,7 @@ void listpartisions() {
               << std::setw(15) << "Mountpoint" 
               << std::setw(10) << "FSType" 
               << "\n";
-    std::cout << std::string(63, '-') << "\n";
+   scf::println(std::string(63, '-'));
 
     std::vector<scf::str512> partitions;
 
@@ -350,19 +352,16 @@ void listpartisions() {
         ERR(ErrorCode::DeviceNotFound, "No partitions found on this drive");
     }
 
-    std::cout << "\n┌─ Partition Management Options ─┐\n";
-    std::cout << "├────────────────────────────────┤\n";
-    std::cout << "│ 1. Resize partition            │\n";
-    std::cout << "│ 2. Move partition              │\n";
-    std::cout << "│ 3. Change partition type       │\n";
-    std::cout << "│ 4. Return to main menu         │\n";
-    std::cout << "└────────────────────────────────┘\n";
-    std::cout << "Enter your choice: ";
+    scf::println("");
 
-    const auto choice = InputValidation::getInt(1, 4);
-    if (!choice.has_value()) return;
+    const int choice = GenericMenuIO::noColorTuiMenu("Partition Management", {
+        {1, "Resize partition"},
+        {2, "Move partition"},
+        {3, "Change partition type"},
+        {0, "Return to main menu"}
+    });
 
-    switch (*choice) {
+    switch (choice) {
         case 1: {
             PartitionsUtils::case1ResizePartition(partitions);
             break;
@@ -412,7 +411,7 @@ void analyzeDiskSpace() {
         while (std::getline(iss, line)) {
             scf::println(Globals::g_THEME_COLOR, "│ ", RESET, line);
         }
-        scf::println(Globals::g_THEME_COLOR, "│\n", RESET);
+        scf::println(Globals::g_THEME_COLOR, "│", RESET);
     }
 
     std::istringstream iss(disk_cmd_res.output);
@@ -476,7 +475,7 @@ void analyzeDiskSpace() {
         std::string filesystem, df_size, used, avail, usep, mnt;
         dfiss >> filesystem >> df_size >> used >> avail >> usep >> mnt;
 
-        scf::println(Globals::g_THEME_COLOR, "│\n", RESET);
+        scf::println(Globals::g_THEME_COLOR, "│", RESET);
         scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Used:        ", used);
         scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Available:   ", avail);
         scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Used %:      ", usep);
@@ -653,7 +652,7 @@ int checkDriveHealth() {
 
         scf::str256 error = e.what();
         LOG_ERROR(error);
-        ERR(ErrorCode::ProcessFailure, e.what());
+        ERR(ErrorCode::ProcessFailure, error);
 
     }
 
@@ -839,7 +838,7 @@ private:
         std::cout << "\nEnter a Passphrase for the encrypted USB\n";
         scf::read(passphrase);
 
-        if (!passphrase.empty()) {
+        if (passphrase.empty()) {
 
             ERR(ErrorCode::InvalidInput, "The passphrase you entered is emtpy; Expecting non empty string");
             LOG_ERROR("The passphrase you entered is emtpy");
@@ -1125,28 +1124,28 @@ public:
 // Tried my best to make this as safe and readable and maintainable as possible. v0.9.12.92
 
 void overwriteDriveData() { 
-    scf::println(BOLD, "\n[Drive Data Overwriting]", RESET, "\n");
+    scf::lnprintln(BOLD, "[Drive Data Overwriting]", RESET);
     const scf::str512 drive_to_operate_on = ListDrivesUtil::listDrives(true);
 
-    scf::println(YELLOW, "[WARNING]", RESET, " Are you sure you want to overwrite all data on ", BOLD, drive_to_operate_on, RESET, "? This action cannot be undone! (y/n)\n");
+    scf::println(YELLOW, "[WARNING]", RESET, " Are you sure you want to overwrite all data on ", BOLD, drive_to_operate_on, RESET, "? This action cannot be undone! (y/n)");
         
     const auto confirm = InputValidation::getChar({'y', 'n'});
     if (!confirm.has_value()) return;
 
     if (confirm != 'y') {
 
-        scf::println(BOLD, "[Overwriting aborted]", RESET, " The Overwriting process of ", drive_to_operate_on, " was interupted by user\n");
+        scf::println(BOLD, "[Overwriting aborted]", RESET, " The Overwriting process of ", drive_to_operate_on, " was interupted by user");
         LOG_INFO("Overwriting process aborted by user for drive: " + drive_to_operate_on);
         return;
 
     }
 
-    scf::println("\nTo be sure you want to overwrite the data on ", BOLD, drive_to_operate_on, RESET, " you need to enter the following safety key\n");
+    scf::lnprintln("To be sure you want to overwrite the data on ", BOLD, drive_to_operate_on, RESET, " you need to enter the following safety key");
 
     const std::string conf_key = confirmationKeyGenerator();
     LOG_INFO("Confirmation key generated for overwriting drive: " + drive_to_operate_on);
 
-    scf::println("\n", conf_key);
+    scf::println(conf_key);
     scf::println("\nEnter the confirmation key:");
 
     auto user_input = InputValidation::getString();
@@ -1160,7 +1159,7 @@ void overwriteDriveData() {
 
     }
 
-    scf::println(YELLOW, "[Process]", RESET, " Proceeding with overwriting all data on: ", drive_to_operate_on);
+    scf::lnprintln(YELLOW, "[Process]", RESET, " Proceeding with overwriting all data on: ", drive_to_operate_on);
     scf::println(" \n");
 
     try {
@@ -1226,7 +1225,7 @@ private:
         return metadata;
     }
 
-    static void displayMetadata(const DriveMetadataStruct::DriveMetadata& metadata) {
+    static void displayMetadata(const DriveMetadataStruct::DriveMetadata &metadata) {
         scf::println_flush("-------- Drive Metadata --------");
 
         auto printAttr = [&](const std::string& attr, const std::string& value) {
@@ -1574,7 +1573,7 @@ private:
 
         try {
 
-            scf::println("Are you sure you want to overwrite/clean the ISO/Disk_Image from: ", restore_device_name, " ? [y/n]");
+            scf::lnprintln("\nAre you sure you want to overwrite/clean the ISO/Disk_Image from: ", BOLD, restore_device_name, RESET, " ? [y/n]");
             
             const auto restore_confirm = InputValidation::getChar({'y', 'n'});
             if (!restore_confirm.has_value()) return;
@@ -1589,7 +1588,7 @@ private:
 
             scf::lnprintln(CYAN, "[Phase 1]:");
 
-            EXEC_QUIET_SUDO("umount " + restore_device_name + "* 2>/dev/null || true");
+            EXEC_SUDO_SPINNER("umount " + restore_device_name + "* 2>/dev/null || true");
             
             const auto wipefs_res = EXEC_QUIET_SUDO("wipefs -a " + restore_device_name + " >/dev/null 2>&1 && sync");
 
@@ -1602,7 +1601,7 @@ private:
             }
 
             // Zero out start
-            scf::lnprintln(CYAN, "[Phase 2]:");
+            scf::println(CYAN, "[Phase 2]:");
 
             const auto dd_res = EXEC_SUDO_SPINNER("dd if=/dev/zero of=" + restore_device_name + " bs=1M count=10 >/dev/null 2>&1 && sync");
 
@@ -1615,7 +1614,7 @@ private:
             }
 
             // Create partition table
-            scf::lnprintln(CYAN, "[Phase 3]:");
+            scf::println(CYAN, "[Phase 3]:");
             const auto parted_res = EXEC_SUDO_SPINNER("parted -s " + restore_device_name + " mklabel msdos mkpart primary 1MiB 100%");
 
             if (!parted_res.success) {
@@ -2125,7 +2124,7 @@ public:
         std::vector<std::pair<int, std::string>> forensic_menu = {
             {Info, "Info about the Forensic Analysis tool"},
             {CreateDisktImage, "Create a disk image of a drive"},
-            {ScanDrive, "Recover system/files/partitions..."},
+            // {ScanDrive, "Recover system/files/partitions..."},
             {Exit, "Return to main menu"}
         };
 
@@ -2144,10 +2143,10 @@ public:
                 break;
             }
 
-            case ScanDrive: {
-                recovery();
-                break;
-            }
+            // case ScanDrive: {
+            //     recovery();
+            //     break;
+            // }
 
             case Exit: {
                 break;
@@ -2236,11 +2235,11 @@ class Clone {
     public:
         static void mainClone() {
             try {
-                scf::println("\nChoose a Source drive to clone the data from it:");
+                scf::lnprintln("Choose a Source drive to clone the data from it:");
                 const scf::str512 source_drive = ListDrivesUtil::listDrives(true);
 
-                scf::println("\nEnter a Target drive/device to clone the data on to it (dont choose the same drive):");
-                scf::println(YELLOW, "[WARNING]", RESET, " Make sure to choose the mount path of the target", BOLD, " (e.g., /media/target_drive)\n", RESET);
+                scf::lnprintln("Enter a Target drive/device to clone the data on to it (dont choose the same drive):");
+                scf::println(YELLOW, "[WARNING]", RESET, " Make sure to choose the mount path of the target", BOLD, " (e.g., /media/target_drive)", RESET);
 
                 auto target_drive = InputValidation::getString();
                 if (!target_drive.has_value()) return;
@@ -2264,8 +2263,8 @@ class Clone {
 
             } catch (std::exception& e) {
 
-                ERR(ErrorCode::ProcessFailure, "An error occurred during the clone initializing process: " + std::string(e.what()));
-                LOG_ERROR(std::string(e.what()));
+                ERR(ErrorCode::ProcessFailure, "An error occurred during the clone initializing process: " + scf::to_str128(e.what()));
+                LOG_ERROR(scf::to_str128(e.what()));
                 return; 
 
             }
@@ -2275,7 +2274,7 @@ class Clone {
 
 // ========== Log Viewer Utility ==========
 
-void logViewer() {
+static void logViewer() {
     std::ifstream file(Globals::log_path);
 
     if (!file) {
@@ -2347,6 +2346,7 @@ class ConfigValueHandeling {
             scf::str16 SELECTION_COLOR_MODE = "RESET";
             bool DRY_RUN_MODE = false;
             bool ROOT_MODE = false;
+            bool SMART_DATA = false;
         };
 
         static CONFIG_VALUES configHandler() {
@@ -2410,23 +2410,38 @@ class ConfigValueHandeling {
                 else if (key == "ROOT_MODE") {
                     std::string v = StrUtils::toLowerString(value);
                     cfg.ROOT_MODE = (v == "true");
+                }
+                else if (key == "SMART_DATA") {
+                    std::string v = StrUtils::toLowerString(value);
+                    cfg.SMART_DATA = (v == "true");
                 };
+                
             }
             return cfg;
+        }
+
+        static void printConfig(const CONFIG_VALUES &cfg) {
+            scf::println("┌─────", BOLD, " config values ", RESET, "─────┐");
+            scf::println("│ UI mode: ", cfg.UI_MODE);
+            scf::println("│ Compile mode: ", cfg.COMPILE_MODE);
+            scf::println("│ Dry run mode: ", cfg.DRY_RUN_MODE);
+            scf::println("│ Root mode: ", cfg.ROOT_MODE);
+            scf::println("│ Theme Color: ", cfg.THEME_COLOR_MODE);
+            scf::println("│ Selection Color: ", cfg.SELECTION_COLOR_MODE);
+            scf::println("│ Smart metadata: ", cfg.SMART_DATA);
+            scf::println("└─────────────────────────┘");   
         }
 
         static void configEditor() {
             CONFIG_VALUES cfg = configHandler();
 
-            std::cout << "┌─────" << BOLD << " config values " << RESET << "─────┐\n";
-            std::cout << "│ UI mode: "          << cfg.UI_MODE               << "\n";
-            std::cout << "│ Compile mode: "     << cfg.COMPILE_MODE          << "\n";
-            std::cout << "│ Dry run mode: "     << cfg.DRY_RUN_MODE          << "\n";
-            std::cout << "│ Root mode: "        << cfg.ROOT_MODE             << "\n";
-            std::cout << "│ Theme Color: "      << cfg.THEME_COLOR_MODE      << "\n";
-            std::cout << "│ Selection Color: "  << cfg.SELECTION_COLOR_MODE  << "\n";
-            std::cout << "└─────────────────────────┘\n";   
-            std::cout << "\nDo you want to edit the config file? (y/n)\n";
+            printConfig(cfg);
+
+            if (Globals::config_path.empty()) {
+                return;
+            }            
+
+            scf::lnprintln("Do you want to edit the config file? (y/n)");
             
             const auto config_edit_confirm = InputValidation::getChar({'y', 'n'}); 
             if (!config_edit_confirm.has_value()) return; 
@@ -2468,6 +2483,14 @@ class ConfigValueHandeling {
             Globals::g_THEME_COLOR = RESET;
             Globals::g_SELECTION_COLOR = RESET;
 
+            if (Globals::g_no_color) {
+
+                Globals::g_THEME_COLOR = RESET;
+                Globals::g_SELECTION_COLOR = RESET;
+                return;
+
+            }
+
             auto theme_color = available_colores.find(cfg.THEME_COLOR_MODE);
 
             if (theme_color != available_colores.end()) {
@@ -2496,7 +2519,7 @@ private:
         DriveMetadataStruct::DriveMetadata metadata;
         const scf::str1024 cmd = "lsblk -o NAME,SIZE,MODEL,SERIAL,UUID -P -p " + drive; 
 
-        const auto res = EXEC_QUIET(std::string(cmd));
+        const auto res = EXEC_QUIET(cmd);
 
         if (!res.success || res.output.empty()) { 
 
@@ -2548,7 +2571,7 @@ private:
 
 public:
     static void fingerprinting_main() {
-        scf::println("\n[Drive Fingerprinting]");
+        scf::lnprint("[Drive Fingerprinting]");
         const scf::str512 drive_name_fingerprinting = ListDrivesUtil::listDrives(true);
 
         DriveMetadataStruct::DriveMetadata metadata = getMetadata(drive_name_fingerprinting);
@@ -2566,7 +2589,7 @@ public:
 
         LOG_INFO("Generated fingerprint for drive: " + drive_name_fingerprinting);
 
-        scf::println(BOLD, "Fingerprint:\n", RESET);
+        scf::println(BOLD, "Fingerprint:", RESET);
         scf::println(fingerprint, "\n");
 
         DriveMetadataStruct::clearMetadata(metadata);
@@ -2577,18 +2600,17 @@ public:
 // ========== Main Menu and Utilities ==========
 
 static void Info() {
-    int setw_for_version;
-    scf::println(setw_for_version);
-    if (VERSION.rfind("_dev") != scf::str_t::npos) { setw_for_version = 92; } else { setw_for_version = 88; }
-    std::cout << "\n┌───────────────────────────────────────────────────" << BOLD << " Info " << RESET << "───────────────────────────────────────────────────┐\n";
-    std::cout << "│ Welcome to Linux Drive Manager (DMgr / LDM) — a program for Linux to view and operate your storage devices." <<                          "│\n"; 
-    std::cout << "│ Warning! You should know the basics about drives so you don't lose any data." <<                                        std::setw(35) << "│\n";
-    std::cout << "│ If you find problems or have ideas, visit the GitHub page and open an issue." <<                                        std::setw(35) << "│\n";
-    std::cout << "│ " << BOLD << "Other info:" << RESET <<                                                                                 std::setw(100) << "│\n";
-    std::cout << "│ Version: " << BOLD << VERSION << RESET <<                                                                 std::setw(setw_for_version) << "│\n";
-    std::cout << "│ Github: " << BOLD << "https://github.com/Dogwalker-kryt/Linux-Drive-Manager" << RESET <<                                std::setw(50) << "│\n";
-    std::cout << "│ Author: " << BOLD << "Dogwalker-kryt" << RESET <<                                                                       std::setw(89) << "│\n";
-    std::cout << "└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘\n";
+    int setw_for_version = 0;
+    if (VERSION.rfind("_dev") != scf::str_t::npos) { setw_for_version = 84; } else { setw_for_version = 88; }
+    scf::lnprintln(Globals::g_THEME_COLOR, "┌───────────────────────────────────────────────────", RESET, BOLD, " Info ", RESET, Globals::g_THEME_COLOR, "───────────────────────────────────────────────────┐", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Welcome to Linux Drive Manager (DMgr / LDM) — a program for Linux to view and operate your storage devices.", Globals::g_THEME_COLOR, "│", RESET); 
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Warning! You should know the basics about drives so you don't lose any data.", scf::str64(31, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "If you find problems or have ideas, visit the GitHub page and open an issue.", scf::str64(31, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, BOLD, "Other info:", RESET, scf::str128(96, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Version: ", BOLD, VERSION, RESET, scf::str128(setw_for_version, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Github: ", BOLD, "https://github.com/Dogwalker-kryt/Sectr-ctl", RESET, scf::str64(56, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Author: ", BOLD, "Dogwalker-kryt", RESET, scf::str128(85, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘", RESET);
 }
 
 static void printUsage(const char* progname) {
@@ -2597,117 +2619,146 @@ static void printUsage(const char* progname) {
               , "  --version, -v       Print program version\n"
               , "  --help, -h          Show this help and exit\n"
               , "  --dry-run, -n       Do not perform destructive operations\n"
-              , "  --no-color, -nc      Disable colors (may affect the main menu)\n"
+              , "  --no-color, -nc     Disable colors (may affect the main menu)\n"
               , "  --no-log, -nl       Disables all logging in the current session\n"
               , "  --debug, -d         Enables debug messages in current session and Test option\n"
               , "  --info, -i          Show program info\n"
               , "  --logs, -l          Show log file content\n"
               , "  --select <device>, -sd <device>         Pre select a drive you want to use\n"
               , "  --config-src <path>, -cfg-src <path>    Use a diffrent config source temporalily\n"
-              , "  --operation-name    Goes directly to a specific operation without menu\n"
+              , "  --stand-alone, -sa  Makes sectr run standalone with no logging, config and color\n"
+              , "  --config, -c        Prints config values of the current config\n"
+              , "  --operation         Goes directly to a specific operation without menu\n"
               , "                      Available operations:\n"
-              , "                        --list-drives\n"
-              , "                        --format-drive\n"
-              , "                        --encrypt-decrypt\n"
-              , "                        --resize-drive\n"
-              , "                        --check-drive-health\n"
-              , "                        --analyze-disk-space\n"
-              , "                        --overwrite-drive-data\n"
-              , "                        --view-metadata\n"
+              , "                        --list\n"
+              , "                        --format\n"
+              , "                        --crypt\n"
+              , "                        --resize\n"
+              , "                        --health\n"
+              , "                        --analyze-space\n"
+              , "                        --overwrite\n"
+              , "                        --vmetadata\n"
               , "                        --info\n"
-            //   , "                        --forensics\n"
-              , "                        --clone-drive\n");
+              , "                        --forensics\n"
+              , "                        --clone\n");
 }
 
 
+static void notAvilable() {
+    scf::println(BOLD, "[Attention] ", RESET ,"This function is not avilable in Stand alone mode (-sa)");
+}
+
 // ==================== Main Function ====================
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[], char** envp) {
     scf::print(NEWTERMINALSCREEN);
 
-    const std::map<std::string, std::function<void()>> cli_commands = {
-        {"--list-drives", []()          { scf::print(LEAVETERMINALSCREEN); ListDrivesUtil::listDrives(false); }},
-        {"--format-drive", []()         { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; formatDrive(); }},
-        {"--encrypt-decrypt", []()      { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; USBEnDeCryptionUtils::mainUsbEnDecryption(); }}, 
-        {"--resize-drive", []()         { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; resizeDrive(); }},
-        {"--check-drive-health", []()   { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; checkDriveHealth(); }},
-        {"--analyze-disk-space", []()   { term.enableTerminosInput_diableAltTerminal(); analyzeDiskSpace(); }},
-        {"--overwrite-drive-data", []() { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; overwriteDriveData(); }},
-        {"--view-metadata", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRootMetadata()) return; MetadataReader::mainReader(); }},
-        // {"--forensics", []()            { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; ForensicAnalysis::mainForensic(); }},
-        {"--clone-drive", []()          { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; Clone::mainClone(); }},
-        {"--fingerprint", []()          { term.enableTerminosInput_diableAltTerminal(); if (!checkRootMetadata()) return;  DriveFingerprinting::fingerprinting_main();  }}
-    };
+    { // cli cmd
 
-    for (int i = 1; i < argc; i++) {
-        scf::str_t a(argv[i]); 
-        
-        if (a == "--no-color" || a == "-nc")                        { Globals::g_no_color = true; continue; }
+        const std::map<std::string, std::function<void()>> cli_commands = {
+            {"--list", []()         { scf::print(LEAVETERMINALSCREEN); ListDrivesUtil::listDrives(false); }},
+            {"--format", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; formatDrive(); }},
+            {"--crypt", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; USBEnDeCryptionUtils::mainUsbEnDecryption(); }}, 
+            {"--resize", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; resizeDrive(); }},
+            {"--health", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; checkDriveHealth(); }},
+            {"--analyze-space", [](){ term.enableTerminosInput_diableAltTerminal(); analyzeDiskSpace(); }},
+            {"--overwrite", []()    { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; overwriteDriveData(); }},
+            {"--metadata", []()     { term.enableTerminosInput_diableAltTerminal(); if (!checkRootMetadata()) return; MetadataReader::mainReader(); }},
+            {"--forensics", []()    { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; ForensicAnalysis::mainForensic(); }},
+            {"--clone", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; Clone::mainClone(); }},
+            {"--fingerprint", []()  { term.enableTerminosInput_diableAltTerminal(); if (!checkRootMetadata()) return;  DriveFingerprinting::fingerprinting_main();  }}
+        };
 
-        if (a == "--no-log" || a == "-nl")                         { Globals::g_no_log = true; continue; }
-
-        if (a == "--help" || a == "-h")                            { scf::print(LEAVETERMINALSCREEN); printUsage(argv[0]); return 0; }
-
-        if (a == "--version" || a == "-v")                         { scf::print(LEAVETERMINALSCREEN); scf::println("Sectr-ctl CLI version: ", VERSION); return 0; }
-        
-        if (a == "--debug" || a == "-d")                           { Globals::g_debug = true; continue; }
-
-        if (a == "--logs" || a == "-l")                            { logViewer(); scf::print(LEAVETERMINALSCREEN); return 0; }
-
-        if (a == "--dry-run" || a == "-n")                         { Globals::g_dry_run = true; continue; }
-
-        if (a == "--info" || a == "-i")                            { scf::print(LEAVETERMINALSCREEN); Info(); return 0; }
-
-        if (a == "--select" || a == "-sd")                         { 
-
-            Globals::g_selected_drive_by_flag = true; 
+        for (int i = 1; i < argc; i++) {
+            scf::str_t a(argv[i]); 
             
-            Globals::g_selected_drive = argv[i + 1];
-            i++;
-            
-            if (!fileExists(Globals::g_selected_drive)) {
+            if (a == "--no-color" || a == "-nc")                       { Globals::g_no_color = true; continue; }
 
-                ERR(ErrorCode::DeviceNotFound, "");
-                LOG_ERROR("The device: '" + Globals::g_selected_drive + "' could not be found");
-                break;
+            if (a == "--no-log" || a == "-nl")                         { Globals::g_no_log = true; continue; }
+
+            if (a == "--smart-data" || a == "-sm")                     { Globals::smart_data = true; continue; }
+
+            if (a == "--help" || a == "-h")                            { scf::print(LEAVETERMINALSCREEN); printUsage(argv[0]); return 0; }
+
+            if (a == "--version" || a == "-v")                         { scf::print(LEAVETERMINALSCREEN); scf::println("Sectr-ctl CLI version: ", VERSION); return 0; }
+            
+            if (a == "--debug" || a == "-d")                           { Globals::g_debug = true; continue; }
+
+            if (a == "--logs" || a == "-l")                            { logViewer(); scf::print(LEAVETERMINALSCREEN); return 0; }
+
+            if (a == "--dry-run" || a == "-n")                         { Globals::g_dry_run = true; continue; }
+
+            if (a == "--info" || a == "-i")                            { scf::print(LEAVETERMINALSCREEN); Info(); return 0; }
+
+            if (a == "--select" || a == "-sd")                         { 
+
+                Globals::g_selected_drive_by_flag = true; 
+                
+                Globals::g_selected_drive = argv[i + 1];
+                i++;
+                
+                if (!fileExists(Globals::g_selected_drive)) {
+
+                    ERR(ErrorCode::DeviceNotFound, "");
+                    LOG_ERROR("The device: '" + Globals::g_selected_drive + "' could not be found");
+                    break;
+
+                }
+
+                continue; 
+            }
+
+            if (a == "--config-src" || a == "-cfg-src")                {
+
+                Globals::g_config_src_flag = true;
+
+                Globals::g_config_src_path = argv[i + 1];
+                i++;
+
+                scf::str<986> val_config_src_path = filePathHandler(Globals::g_config_src_path);
+
+                Globals::g_config_src_path = val_config_src_path;
+
+                if (!fileExists(Globals::g_config_src_path)) {
+
+                    ERR(ErrorCode::FileNotFound, "Your custom config: '" + Globals::g_config_src_path + "coudnt be found");
+                    LOG_ERROR("The file: '" + Globals::g_config_src_path + "' could not be found");
+                    break;
+
+                } 
+
+                continue;
+            }
+
+            if (a == "--config" || a == "-c")                          {
+
+                ConfigValueHandeling::CONFIG_VALUES cfg = ConfigValueHandeling::configHandler();
+                ConfigValueHandeling::printConfig(cfg);
 
             }
 
-            continue; 
-        }
+            if (a == "--stand-alone" || a == "-sa") {
 
-        if (a == "--config-src" || a == "-cfg-src")                {
+                Globals::stand_alone = true;
 
-            Globals::g_config_src_flag = true;
+                Globals::g_no_log = true;
+                Globals::log_path = "";
+                Globals::config_path = "";
+                Globals::g_no_color = true;
 
-            Globals::g_config_src_path = argv[i + 1];
-            i++;
+            }
 
-            scf::str<986> val_config_src_path = filePathHandler(Globals::g_config_src_path);
-
-            Globals::g_config_src_path = val_config_src_path;
-
-            if (!fileExists(Globals::g_config_src_path)) {
-
-                ERR(ErrorCode::FileNotFound, "Your custom config: '" + Globals::g_config_src_path + "coudnt be found");
-                LOG_ERROR("The file: '" + Globals::g_config_src_path + "' could not be found");
-                break;
-
-            } 
-
-            continue;
-        }
-
-        else {
-            auto cmd = cli_commands.find(argv[i]);
-            
-            if (cmd != cli_commands.end()) {
-                cmd->second();
-                return 0;
+            else {
+                auto cmd = cli_commands.find(argv[i]);
+                
+                if (cmd != cli_commands.end()) {
+                    cmd->second();
+                    return 0;
+                }
             }
         }
-    }
 
+    } // cli cmd
 
     ConfigValueHandeling::colorThemeHandler();
 
@@ -2719,7 +2770,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    // ===== Menu Renderer =====
+    // ===== TUI =====
 
     std::vector<std::pair<MenuOptionsMain, std::string>> menuItems = {
         {LISTDRIVES, "List Drives"},                            {FORMATDRIVE, "Format Drive"},                                  {ENCRYPTDECRYPTDRIVE, "Encrypt/Decrypt USB Drives"},
@@ -2731,13 +2782,19 @@ int main(int argc, char* argv[]) {
     };
 
     if (Globals::g_debug || (VERSION.find("dev") != scf::str_t::npos) == true) {
-
         menuItems.insert(menuItems.end() - 1, {TESTS, "Tests"});
     }
 
+    if (Globals::stand_alone) {
+        for (auto &item : menuItems) {
+            if (item.first == LOGVIEW || item.first == CONFIG) {
+                item.second += " (not avilable)";
+            }
+        }
+    }
 
     // func* for no_color 
-    using menu_renderer = int(*)(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
+    using menu_renderer = int(*)(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems, std::string &version);
     menu_renderer menu_render_strategy = nullptr;
 
     if (Globals::g_no_color == true) {
@@ -2752,86 +2809,63 @@ int main(int argc, char* argv[]) {
     while (running == true) {
         term.initiateTerminosInput();
 
-        int selected = menu_render_strategy(menuItems);
+        int selected = menu_render_strategy(menuItems, version_str);
 
         int menuinput = menuItems[selected].first;
         switch (static_cast<MenuOptionsMain>(menuinput)) {
 
             case LISTDRIVES: {
                 ListDrivesUtil::listDrives(false);
-                scf::println(BOLD, "\nPress '1' to return, '2' for advanced listing, or '3' to exit:", RESET);
+                scf::lnprintln(BOLD, "Press '1' to return, '2' for advanced listing, or '3' to exit:", RESET);
                 auto menuques2 = InputValidation::getInt(1, 3);
                 
-                if (menuques2 == 1) continue;
-                else if (menuques2 == 2) listpartisions();
-                else if (menuques2 == 3) running = false;
+                if (menuques2 == 1) { continue; }
+                else if (menuques2 == 2) { listpartisions(); }
+                else if (menuques2 == 3) { running = false; }
                 break;
             }
 
-            // 2. Format Drive
-            case FORMATDRIVE:           { if (!checkRoot()) {menuQues(running);} else {formatDrive(); menuQues(running);} break; }
+            case FORMATDRIVE:           { if (!checkRoot()) { menuQues(running); } else { formatDrive(); menuQues(running); } break; }
 
-            // 3. En-Decrypt Drive
-            case ENCRYPTDECRYPTDRIVE:   { if (!checkRoot()) {menuQues(running);} else {USBEnDeCryptionUtils::mainUsbEnDecryption(); menuQues(running);} break; } 
+            case ENCRYPTDECRYPTDRIVE:   { if (!checkRoot()) { menuQues(running); } else { USBEnDeCryptionUtils::mainUsbEnDecryption(); menuQues(running); } break; } 
 
-            // 4. Resize Drive
-            case RESIZEDRIVE:           { if (!checkRoot()) {menuQues(running);} else {resizeDrive(); menuQues(running);} break; }
+            case RESIZEDRIVE:           { if (!checkRoot()) { menuQues(running); } else { resizeDrive(); menuQues(running); } break; }
 
-            // 5. Check Drive health
-            case CHECKDRIVEHEALTH:      { if (!checkRoot()) {menuQues(running);} else {checkDriveHealth(); menuQues(running);} break; }
+            case CHECKDRIVEHEALTH:      { if (!checkRoot()) { menuQues(running); } else { checkDriveHealth(); menuQues(running); } break; }
 
-            // 6. Analyze Drive Space
             case ANALYZEDISKSPACE:      { analyzeDiskSpace(); menuQues(running); break; }
 
-            // 7. Overwrite Data
-            case OVERWRITEDRIVEDATA:    { if (!checkRoot()) {menuQues(running);} else {overwriteDriveData(); menuQues(running);} break; }
+            case OVERWRITEDRIVEDATA:    { if (!checkRoot()) { menuQues(running); } else { overwriteDriveData(); menuQues(running); } break; }
 
-            // 8. View Metadata
-            case VIEWMETADATA:          { if (!checkRootMetadata()) {menuQues(running);} else {MetadataReader::mainReader(); menuQues(running);} break; }
+            case VIEWMETADATA:          { if (!checkRootMetadata()) { menuQues(running); } else { MetadataReader::mainReader(); menuQues(running); } break; }
 
-            // 9. View Info
             case VIEWINFO:              { Info(); menuQues(running); break; }
 
-            // 10. Mount Unmount Drive
-            case MOUNTUNMOUNT:          { if (!checkRoot()) {menuQues(running);} else {MountUtility::mainMountUtil(); menuQues(running);} break; }
+            case MOUNTUNMOUNT:          { if (!checkRoot()) { menuQues(running); } else { MountUtility::mainMountUtil(); menuQues(running); } break; }
 
-            // 11. Forensics
-            // case FORENSIC:              { if (!checkRoot()) {menuQues(running);} else {ForensicAnalysis::mainForensic(); menuQues(running);} break; }
-            case FORENSIC: {
-                scf::lnprintln("[dev] Forensics function is underdevelopment");
-                menuQues(running);
-                break;
-            }
+            case FORENSIC:              { if (!checkRoot()) { menuQues(running); } else { ForensicAnalysis::mainForensic(); menuQues(running); } break; }
 
-            // 12. Log viewer
-            case LOGVIEW:               { logViewer(); menuQues(running); break; }
+            case LOGVIEW:               { if (Globals::stand_alone) { notAvilable(); } else { logViewer(); } menuQues(running); break; }
 
-            // 13. Clone Drive
-            case CLONEDRIVE:            { if (!checkRoot()) {menuQues(running);} else {Clone::mainClone(); menuQues(running);} break; }
+            case CLONEDRIVE:            { if (!checkRoot()) { menuQues(running);} else { Clone::mainClone(); menuQues(running); } break; }
 
-            // 14. Config edtior
-            case CONFIG:                { ConfigValueHandeling::configEditor(); menuQues(running); break; }
-            
-            // 15. Fingerprint Drive
-            case FINGERPRINT:           { if (!checkRootMetadata()) {menuQues(running);} else {DriveFingerprinting::fingerprinting_main(); menuQues(running);} break; }
+            case CONFIG:                { if (Globals::stand_alone) { notAvilable(); } else { ConfigValueHandeling::configEditor(); } menuQues(running); break; }
 
-            // 16. Updater
+            case FINGERPRINT:           { if (!checkRootMetadata()) { menuQues(running); } else { DriveFingerprinting::fingerprinting_main(); menuQues(running); } break; }
+
             case UPDATER:               { LDMUpdater::updaterMain(VERSION); menuQues(running); break; }
 
-            // 17. Tests
             case TESTS: { 
                 auto res = run_all_tests_internal(); 
                 print_test_summary(res);
-                
                 menuQues(running); 
                 break; 
             }
 
-            // 0. Exit
             case EXITPROGRAM:           { running = false; break; }
 
             default: {
-                std::cerr << RED << "[Error] Invalid selection\n" << RESET;
+                std::cerr << RED << "[Error] Invalid selection; How the fuck would even trigger this happen???\n" << RESET;
                 break;
             }
         }

@@ -43,6 +43,9 @@ namespace Globals{
 
     // === program state globals ===
 
+    /** @brief Global variable to indicate if the program should run as a stand alone without any logging and config stuff */
+    extern bool stand_alone;
+
     /** @brief Global variable to indicate if the program is running in dry-run mode, where no actual commands are executed and only logged */
     extern bool g_dry_run;
 
@@ -52,6 +55,8 @@ namespace Globals{
     /** @brief Global varibale to enable/disable debug messages */
     extern bool g_debug;
 
+    /** @brief Global variable to enable/disable smart metadata in the metadata function */
+    extern bool smart_data;
 
     // === altTerminal Screen ===
     /**

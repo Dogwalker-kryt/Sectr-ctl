@@ -17,13 +17,13 @@ class MainMenuIO {
          * @brief Its the menu Tui selection with colors
          * @param menuItems its defined in the main functions, it contains all avilable menu items
          */
-        static int colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
+        static int colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems, std::string &version);
 
         /**
          * @brief Same shit as colorTuiMenu, but with no colors and ">" cursor
          * @param menuItems its defined in the main functions, it contains all avilable menu items
          */
-        static int noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
+        static int noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems, std::string &version);
 };
 
 class GenericMenuIO {

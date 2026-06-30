@@ -83,6 +83,11 @@ namespace detail {
         return i;
     }
 
+    // bool
+    inline int to_cstr(bool value, char* out, int max) {
+        return to_cstr(value ? "true" : "false", out, max);
+    }
+
     // char[]
     template<size_t N>
     inline int to_cstr(const char (&s)[N], char* out, int max) {
@@ -306,6 +311,11 @@ inline void println(const Args&... args) {
 }
 
 template<size_t N = 1024, typename... Args>
+inline void lnprint(const Args&... args) {
+    vprint(N, stdout, true, false, false, args...);
+}
+
+template<size_t N = 1024, typename... Args>
 inline void lnprintln(const Args&... args) {
     vprint(N, stdout, true, true, false, args...);
 }
@@ -318,6 +328,11 @@ inline void print_cerr(const Args&... args) {
 template<size_t N = 1024, typename... Args>
 inline void println_cerr(const Args&... args) {
     vprint(N, stderr, false, true, false, args...);
+}
+
+template<size_t N = 1024, typename... Args>
+inline void lnprint_cerr(const Args&... args) {
+    vprint(N, stderr, true, false, false, args...);
 }
 
 template<size_t N = 1024, typename... Args>
@@ -337,6 +352,11 @@ inline void println_flush(const Args&... args) {
 }
 
 template<size_t N = 1024, typename... Args>
+inline void lnprint_flush(const Args&... args) {
+    vprint(N, stdout, true, false, false, args...);
+}
+
+template<size_t N = 1024, typename... Args>
 inline void lnprintln_flush(const Args&... args) {
     vprint(N, stdout, true, true, true, args...);
 }
@@ -349,6 +369,11 @@ inline void print_cerr_flush(const Args&... args) {
 template<size_t N = 1024, typename... Args>
 inline void println_cerr_flush(const Args&... args) {
     vprint(N, stderr, false, true, true, args...);
+}
+
+template<size_t N = 1024, typename... Args>
+inline void lnprint_cerr_flush(const Args&... args) {
+    vprint(N, stdout, true, false, false, args...);
 }
 
 template<size_t N = 1024, typename... Args>
