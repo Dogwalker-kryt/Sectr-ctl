@@ -35,8 +35,8 @@ but to add a safety and orchestration layer on top of them.
 
 ### CLI:
 
-- Experimental: `v0.9.35.84`  
-  _(partialy migrating to scf framework and some other stuff)_
+- Experimental: `v0.9.38.89`  
+  _()_
 
 - Currently worked on:
 	Migrating parts of the code base to scf_str, wich is a fixed sized stack string 
