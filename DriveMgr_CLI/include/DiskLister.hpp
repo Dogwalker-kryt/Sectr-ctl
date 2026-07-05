@@ -8,8 +8,18 @@
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
+#include "scf/scf.hpp"
 
 namespace fs = std::filesystem;
+
+struct PartInfo {
+    scf::str128 name;
+    double size_MiB_d;
+    scf::str128 size_str;
+    scf::str64 type;
+    scf::str128 mountpoint;
+    scf::str16 fs_type;
+};
 
 struct DiskInfo {
     std::string device;
@@ -18,8 +28,9 @@ struct DiskInfo {
     std::string mount;
     std::string fstype;
     std::string status;
+    size_t partition_count;
+    std::vector<PartInfo> partitions;
 };
-
 struct Row {
     std::string device, size, type, mount, fstype, status;
 };

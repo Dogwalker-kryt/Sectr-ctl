@@ -4,7 +4,7 @@
 std::string StrUtils::checkIfEmpty(const std::string &_str) {
     if (_str.empty()) {
 
-        dmgr_runtime_error("Input string cannot be empty");
+        // dmgr_runtime_error("Input string cannot be empty");
         return ""; // This line will never be reached, but is needed to satisfy the compiler
     }
 

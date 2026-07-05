@@ -273,12 +273,10 @@ static std::map<std::string, file_signature> signatures ={
 };
 
 // ========= input validation =========
+template<size_t N>
+str<N> readLine();
 
-/**
- * @brief takes input with std::getline and checks if std::getline failed
- * @return entered string (if getline failed returns "")
- */
-std::string readLine();
+std::string readLine_stdstr();
 
 namespace InputValidation {
 
@@ -342,7 +340,7 @@ namespace InputValidation {
      * 
      * @param string_size if set, will only return the first n chars in the string
      */
-    scf::optional<std::string> getString(const uint32_t &string_size = 0);
+    scf::optional<std::string> getString(const size_t string_size = 0);
 }
 
 // ==================== Side/Helper Functions ====================
@@ -394,6 +392,8 @@ bool checkRootMetadata();
  * @return true if the file exists, false otherwise.
  */
 static bool fileExists(const str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
+
+void printFunctionHeader(const char *__s);
 
 /**
  * @brief Lamba that extracts 

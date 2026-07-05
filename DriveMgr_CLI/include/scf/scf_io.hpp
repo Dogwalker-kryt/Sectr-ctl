@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include "scf_cutils.hpp"
 #include "scf_type_traits.hpp"
-#include <charconv>
+#include <stdlib.h>
 #include <unistd.h>
 #include "config.hpp"
 #include "scf_str.hpp"
@@ -154,32 +154,14 @@ namespace detail {
     template<typename T>
     inline int to_cstr_signed(T value, char* out, int max) {
         static_assert(scf::type_traits::is_integral_v<T> && scf::type_traits::is_signed_v<T>);
-        if (max <= 0) return 0;
-        auto first = out;
-        auto last  = out + max - 1;
-        auto res   = std::to_chars(first, last, value);
-        if (res.ec != std::errc{}) {
-            out[0] = '\0';
-            return 0;
-        }
-        *res.ptr = '\0';
-        return static_cast<int>(res.ptr - out);
+        return scf::integer_to_cstr(value, out, max);
     }
 
     // Unsigned integers
     template<typename T>
     inline int to_cstr_unsigned(T value, char* out, int max) {
         static_assert(scf::type_traits::is_integral_v<T> && scf::type_traits::is_unsigned_v<T>);
-        if (max <= 0) return 0;
-        auto first = out;
-        auto last  = out + max - 1;
-        auto res   = std::to_chars(first, last, value);
-        if (res.ec != std::errc{}) {
-            out[0] = '\0';
-            return 0;
-        }
-        *res.ptr = '\0';
-        return static_cast<int>(res.ptr - out);
+        return scf::integer_to_cstr(value, out, max);
     }
 
     // Floating point
@@ -280,7 +262,14 @@ namespace detail {
 // Custom nullopt string
 inline const char* nullopt_str = "nullopt";
 
-// better
+inline void flush_stdout() {
+    tcflush(STDOUT_FILENO, TCIFLUSH);
+}
+
+inline void flush_stderr() {
+    tcflush(STDERR_FILENO, TCIFLUSH);
+}
+
 template<typename... Args>
 inline void vprint(size_t N, FILE* out, bool leading_ln, bool trailing_ln, bool flush, const Args&... args) {
     char buf[N];
@@ -297,7 +286,8 @@ inline void vprint(size_t N, FILE* out, bool leading_ln, bool trailing_ln, bool 
         fputc('\n', out);
 
     if (flush)
-        fflush(out);
+        flush_stdout();
+        flush_stderr();
 }
 
 template<size_t N = 1024, typename... Args>
@@ -406,8 +396,7 @@ bool read(T& out) {
     const char* last  = buffer + strlen(buffer);
 
     if constexpr (scf::type_traits::is_integral_v<T>) {
-        auto res = std::from_chars(first, last, out);
-        return res.ec == std::errc{} && res.ptr == last;
+        return scf::cstr_to_integral(first, last, out);
     } else if constexpr (scf::type_traits::is_floating_point_v<T>) {
         char* end = nullptr;
         if constexpr (scf::type_traits::is_same_v<T, float>) {
@@ -468,6 +457,35 @@ T readflsh() {
     flush_stdin();
     read(v);
     return v;
+}
+
+// Read with size limit: read(str, max_size) → returns bool
+#ifdef SCF_ALLOW_STL
+inline bool read(std::string& out, size_t max) {
+    char buffer[1024];
+    size_t read_limit = (max > 1023) ? 1023 : max;
+    if (!detail::read_line_raw(buffer, read_limit + 1))
+        return false;
+    out = buffer;
+    return true;
+}
+#endif
+
+// Read with size limit for fxdstr: read(fxdstr, max_size) → returns bool
+template<size_t N>
+inline bool read(fxdstr<N>& out, size_t max) {
+    char buffer[N];
+    size_t read_limit = (max > N - 1) ? N - 1 : max;
+    if (!detail::read_line_raw(buffer, read_limit + 1))
+        return false;
+    
+    size_t len = 0;
+    while (buffer[len] != '\0' && len < read_limit) {
+        out.data()[len] = buffer[len];
+        ++len;
+    }
+    out.set_length(len);
+    return true;
 }
 
 // ============================================================
