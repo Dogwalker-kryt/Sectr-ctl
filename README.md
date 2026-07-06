@@ -33,7 +33,7 @@ but to add a safety and orchestration layer on top of them.
 
 #### Activly in Development
 
-### CLI:
+### CLI/TUI:
 
 - Experimental: `v0.9.41.33`  
   _(New Disk Mod functions that is still in development, its like a clone of cfdisk)_
