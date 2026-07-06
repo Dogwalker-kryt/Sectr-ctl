@@ -3,8 +3,15 @@
 #include <fstream>
 #include <algorithm>
 #include <pwd.h>
-#define CONFIG_FILE_PATH "/.local/share/DriveMgr/data/config.conf"
+#include <vector>
+#include <cstring>
+#include <unistd.h>
+#include <sys/wait.h>
+#include "../DriveMgr_CLI/include/EnvSys.hpp" // this is the include path for the EnvSys.hpp, of my Project fs strcutue
 
+std::filesystem::path dmgr_root = EnvSys::appRoot();
+std::filesystem::path bin_path = dmgr_root / "bin" / "bin" / "ox"; 
+std::filesystem::path config_path = dmgr_root / "data" / "config.conf";
 
 struct CONFIG_VALUES {
     std::string UI_MODE = "CLI";
@@ -13,50 +20,27 @@ struct CONFIG_VALUES {
     bool DRY_RUN_MODE = false;
 };
 
-
-std::string filePathHandler(const std::string &file_path) {
-    const char* sudo_user = getenv("SUDO_USER");
-    const char* user_env = getenv("USER");
-    const char* username = sudo_user ? sudo_user : user_env;
-
-    if (!username) {
-        std::cerr << "[ERROR] Could not determine username.\n";
-       
-        return "";
-    }
-
-    struct passwd* pw = getpwnam(username);
-
-    if (!pw) {
-        std::cerr << "[ERROR] Could not get home directory for user: " << username << "\n";
-        return "";
-    }
-
-    std::string homeDir = pw->pw_dir;
-    std::string path = homeDir + file_path;
-    
-    return path;
-}
-
-
-std::unordered_map<std::string, std::string> Programm_locations = {
-    {"CLI", "/.local/share/DriveMgr/bin/bin/DriveMgr_CLI"},
-    {"GUI", "/.local/share/DriveMgr/bin/bin/DriveMgr_GUI"}
+std::unordered_map<std::string, std::filesystem::path> Programm_locations = {
+    {"CLI", bin_path},
 };
 
 
+/**
+ * @brief Read and parse configuration file
+ * @return CONFIG_VALUES with parsed settings, or defaults if file doesn't exist
+ */
 CONFIG_VALUES configHandler() {
     CONFIG_VALUES cfg{};
 
-    std::string conf_file = filePathHandler(CONFIG_FILE_PATH);
-
-    if (conf_file.empty()) {
-        return cfg; // return defaults
+    if (!std::filesystem::exists(config_path)) {
+        std::cerr << "[Config_handler WARNING] Config not found: " << config_path << ", using defaults\n";
+        return cfg;  // Return defaults instead of silent failure
     }
 
-    std::ifstream config_file(conf_file);
+    std::ifstream config_file(config_path);
+    
     if (!config_file.is_open()) {
-        std::cerr << "[Config_handler ERROR] Cannot open config file: " << conf_file << "\n";
+        std::cerr << "[Config_handler ERROR] Cannot open config file: " << config_path << "\n";
         return cfg;
     }
 
@@ -82,13 +66,11 @@ CONFIG_VALUES configHandler() {
 
         if (key == "UI_MODE") cfg.UI_MODE = value;
         else if (key == "COMPILE_MODE") cfg.COMPILE_MODE = value;
-
         else if (key == "DRY_RUN_MODE") {
             std::string v = value;
             std::transform(v.begin(), v.end(), v.begin(), ::tolower);
             cfg.DRY_RUN_MODE = (v == "true");
         }
-
         else if (key == "ROOT_MODE") {
             std::string v = value;
             std::transform(v.begin(), v.end(), v.begin(), ::tolower);
@@ -96,31 +78,100 @@ CONFIG_VALUES configHandler() {
         }
     }
 
+    config_file.close();
     return cfg;
 }
 
+/**
+ * @brief Validate that binary exists and is executable
+ * @param program_path Path to the binary
+ * @return true if valid, false otherwise
+ */
+bool validateBinary(const std::filesystem::path &program_path) {
+    if (!std::filesystem::exists(program_path)) {
+        std::cerr << "[Launcher ERROR] Binary not found: " << program_path << "\n";
+        return false;
+    }
 
-void launch_program(const std::string &program_path,
-                    bool root,
-                    bool dry_run,
-                    const std::string &program_flags = "") 
-{
-    std::string path = filePathHandler(program_path);
-    std::string cmd = path;
+    // Check if executable
+    if (access(program_path.c_str(), X_OK) != 0) {
+        std::cerr << "[Launcher ERROR] Binary not executable: " << program_path << "\n";
+        return false;
+    }
 
-    if (!program_flags.empty()) {
-        cmd += " " + program_flags;
+    return true;
+}
+
+/**
+ * @brief Launch program using fork + exec (safer than system())
+ * @param program_path Path to the binary
+ * @param root Whether to run with sudo
+ * @param dry_run Whether to add --dry-run flag
+ * @param program_flags Additional flags to pass
+ */
+void launch_program(const std::filesystem::path &program_path, bool root, bool dry_run, const std::string &program_flags = "") {
+    
+    if (!validateBinary(program_path)) {
+        exit(1);
+    }
+
+    // Build argument list
+    std::vector<const char*> args;
+    std::string prog_str = program_path.string();
+
+    if (root) {
+        args.push_back("sudo");
+        args.push_back(prog_str.c_str());
+        
+    } else {
+        args.push_back(prog_str.c_str());
     }
 
     if (dry_run) {
-        cmd += " --dry-run";
+        args.push_back("--dry-run");
     }
 
-    if (root) {
-        cmd = "sudo " + cmd;
-        system(cmd.c_str());
+    if (!program_flags.empty()) {
+        args.push_back(program_flags.c_str());
+    }
+
+    args.push_back(nullptr);  // NULL-terminate for execvp
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        std::cerr << "[Launcher ERROR] fork() failed\n";
+        exit(1);
+    }
+
+    if (pid == 0) {
+        // Child process: execute
+        execvp(args[0], (char* const*)args.data());
+
+        // If execvp returns, it failed
+        std::cerr << "[Launcher ERROR] execvp() failed: " << strerror(errno) << "\n";
+        exit(1);
+
     } else {
-        system(cmd.c_str());
+        // Parent process: wait for child
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status)) {
+
+            int exit_code = WEXITSTATUS(status);
+            if (exit_code != 0) {
+
+                std::cerr << "[Launcher WARNING] Child exited with code: " << exit_code << "\n";
+            }
+            exit(exit_code);
+
+        } else if (WIFSIGNALED(status)) {
+
+            std::cerr << "[Launcher ERROR] Child killed by signal: " << WTERMSIG(status) << "\n";
+            exit(1);
+
+        }
     }
 }
 
@@ -134,13 +185,19 @@ int main(int argc, char* argv[]) {
         flag = argv[1];
     }
 
+    // Validate UI_MODE exists in map
     std::string selected_ui = cfg.UI_MODE;
     if (Programm_locations.find(selected_ui) == Programm_locations.end()) {
-        selected_ui = "CLI"; // fallback
+        std::cerr << "[Launcher ERROR] Unknown UI_MODE: " << selected_ui << ", defaulting to CLI\n";
+        selected_ui = "CLI";
     }
 
-    std::string path = Programm_locations[selected_ui];
+    std::filesystem::path program_to_launch = Programm_locations[selected_ui];
+    
+    std::cout << "[Launcher] Starting " << selected_ui << " from: " << program_to_launch << "\n";
 
-    launch_program(path, cfg.ROOT_MODE, cfg.DRY_RUN_MODE, flag);
+    launch_program(program_to_launch, cfg.ROOT_MODE, cfg.DRY_RUN_MODE, flag);
+    
     return 0;
 }
+

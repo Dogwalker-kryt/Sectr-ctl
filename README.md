@@ -1,4 +1,4 @@
-# Linux-Drive-Manager
+# Sectr-ctl
 
 A terminal-based drive management tool for Linux (Debian-based), written primarily in C++. 
 
@@ -58,11 +58,11 @@ but to add a safety and orchestration layer on top of them.
 ## Project Structure
 
 ```
-/DriveMgr_CLI      - CLI source code (C++)
+/Sectrctl_CLI      - CLI source code (C++)
     /include       - Headers (.h)
     /src           - Core sources
 
-/DriveMgr_GUI      - GUI version (Rust/C++)
+/Sectrctl_GUI      - GUI version (Rust/C++)
 
 /Launcher
 	launcher.cpp   - Launcher source code (C++)
@@ -116,7 +116,7 @@ Every command has a normal name and a shortend abstract version
 | --version, -v				| Prints the current version of the Dmgr 		|
 | --help, -h				| Prints the printusage for all CLI commands	|
 | --dry-run, -n				| Disables the execution of commads through the exec_cmd.h api in the current session |
-| --no-color, -c			| Disables the use of colors in the current session |
+| --no-color, -nc			| Disables the use of colors in the current session |
 | --no-log, -nl				| Disables loggin in the current session |
 | --debug, -d				| Enables that debug_msg() functions are printed and enables the usage of the Test option in the current session |
 | --info, -i				| Show Dmgr info |
@@ -200,6 +200,7 @@ If you choose ``` y ``` then you finished the installtion and the Dmgr is ready 
 
 
 **Create data and move files**
+
 Move the files in the right dirs: 
 - config.conf -> data/
 - log.dat -> data/
@@ -220,6 +221,8 @@ make
 ```
 After this move the Binary into the path/bin/bin folder 
 
+of move the binary from the bin folder in to the bin/bin dir
+
 
 ##### For the GUI version:
 
@@ -236,29 +239,64 @@ make
 
 ---
 
+## Reinstalation/Updating
+
+If you alredy installed Sectr-ctl and want to update, move its location, or just reintsall it because something went wrong.
+Here are the following choices:
+
+### 1st python script
+
+- If you dont want to loose your color theme and other config file values, consider backing it up.
+
+**then**
+
+- in the install script choose ```uninstall```
+
+**after this**
+
+- get the new version and use the install script 
+
+
+### 2nd Manual
+
+#### step 1 backing up
+
+If you dont want to loose your color theme and other config file values, consider backing it up 
+
+#### step 2 delete
+
+Delete the ```Sectr-ctl``` (```DriveMgr``` old name) in the directory you installed it
+
+#### step 3 redownload and setup
+
+Clone the repo. Then use the setup scirpt or manual install the Sectr-ctl.
+If this is done then swap the config file with you backed up version
+
+---
+
 ## Usage
 
-The recommended terminal hight and width are:
-- hight : 40
-- width : 120
+The recommended terminal minimum hight and width are:
+- hight : 25
+- width : 110
 
-when not using the min recommended hight and width, this can lead to corrupted text prints
+when not using the min recommended hight and width, this can lead to corrupted ASCII prints 
 
 Start by running the program (root required for some features):
 
 **starting raw binary**
 ```sh
-sudo ./DriveMgr        
+sudo ./Sctrctl        
 ```
 
 **with flags**
 ```sh
-sudo ./DriveMgr --operation-name  		
+sudo .//Sctrctl --operation-name  		
 ```
 
 **through Launcher**
 ```sh
-sudo dmgr	
+sudo sectrctl	
 ```
 
 When started, you'll see a menu, for example:
@@ -275,7 +313,7 @@ When started, you'll see a menu, for example:
  └─────────────────────────────────────┘
 ```
 
-Navigate by using the Arrow Key's (in main menu only) to the desired action. The tool will prompt you for additional information (drive number, confirm, etc).  
+Navigate by using the Arrow Key's to the desired action. The tool will prompt you for additional information (drive, confirm, etc).  
 For dangerous actions, an extra key (e.g., generated security key) is required as a safety confirmation.
 
 ---
@@ -370,4 +408,4 @@ If you found an issue that is presistent after restarting the Application, pleas
 
 ## Do you like the Application?
 
-**if you like the Drive Manager Utility, please leave a star**
+**if you like it, please leave a star :)**
