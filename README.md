@@ -36,7 +36,7 @@ but to add a safety and orchestration layer on top of them.
 ### CLI:
 
 - Experimental: `v0.9.41.33`  
-  _(partialy migrating to scf framework and some other stuff)_
+  _(New Disk Mod functions that is still in development, its like a clone of cfdisk)_
 
 ### GUI (Not getting Updated anymore):
 
