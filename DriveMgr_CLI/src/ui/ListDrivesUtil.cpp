@@ -90,7 +90,7 @@ void ListDrivesUtil::printDriveRow(int idx, const Row& r) {
 
 void ListDrivesUtil::printDriveHeader() {
     // if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
-    std::cout << BOLD << "\nAvailable Drives:\n";
+    scf::lnprintln_flush("Available Disks");
 
     // if (!Globals::g_no_color) std::cout << RESET;
     // std::cout << "\n";

@@ -25,6 +25,7 @@
 #include "scf_string_view.hpp"
 
 #ifdef SCF_ALLOW_STL
+#include <iostream>
 #include <string>
 #include <string_view>
 #endif
@@ -343,8 +344,8 @@ public:
 
     // --- Utility ---
     void swap(fxdstr& other) noexcept {
-        std::swap(buffer_, other.buffer_);
-        std::swap(len, other.len);
+        scf::swap(buffer_, other.buffer_);
+        scf::swap(len, other.len);
     }
 
     // --- Substring ---
@@ -548,30 +549,18 @@ namespace std {
 #endif
 namespace scf {
     // --- Convenient aliases ---
-
     // pre fixed sizes
 
-    using str8 = fxdstr<8>; // 8 characters, for very short strings or identifiers
-    using str16 = fxdstr<16>; // 16 characters, for short strings, small identifiers, or short metadata fields
-    using str32 = fxdstr<32>; // 32 characters, for medium-length strings, common metadata fields, or short combined metadata
-    using str64 = fxdstr<64>; // 64 characters, for longer strings, larger buffers fields, or combined metadata
-    using str128 = fxdstr<128>; // 128 characters, for long strings, large buffer fields, or combined/normal metadata. 
-    using str256 = fxdstr<256>; // 256 characters, for very long strings, large buffer fields, or combined metadata. Use with caution due to potential stack overflow on 32-bit systems
-    using str512 = fxdstr<512>; // 512 characters, for very long strings, large buffer fields, or combined metadata. Use with caution due to potential stack overflow on 32-bit systems
-    #if INTPTR_MAX == INT32_MAX
-        using str1024 = fxdstr<1024>; // (32-bit) 1KB string, should be enough for most metadata fields. Use of str1024 is not recommended on 32-bit systems  
-    #else
-        using str1024 = fxdstr<1024>; //(64-bit) 1KB string, should be enough for most metadata fields
-    #endif
-    
-    // big sizes
-
-    #if INTPTR_MAX == INT64_MAX
-        using str2048 = fxdstr<2048>; // (64-bit) 2KB string, for larger metadata fields or combined metadata. Caution: heavy use of it may lead to stack overflow
-        using str4096 = fxdstr<4096>; // (64-bit) 4KB string, for very large metadata, combined metadata, big buffers. Use with extreme caution due to high risk of stack overflow
-    #endif
-
-    // dynamic fixed sizes 
+    using str8 = fxdstr<8>; // 8 characters
+    using str16 = fxdstr<16>; // 16 characters
+    using str32 = fxdstr<32>; // 32 characters
+    using str64 = fxdstr<64>; // 64 characters
+    using str128 = fxdstr<128>; // 128 characters
+    using str256 = fxdstr<256>; // 256 characters
+    using str512 = fxdstr<512>; // 512 characters
+    using str1024 = fxdstr<1024>; // 1KB string
+    using str2048 = fxdstr<2048>; // 2KB string
+    using str4096 = fxdstr<4096>; // 4KB string
 
     // generic alias for fxdstr with size N, can be used for template parameters. 32-bit systems should generally not use sizes larger than 1024 to avoid stack overflow, while 64-bit systems can safely use sizes up to 2048 or 4096. Use with caution on 32-bit systems.
     // template<size_t N>
@@ -581,10 +570,10 @@ namespace scf {
     template<size_t N>
     using str = fxdstr<N>; 
 
-    #if INTPTR_MAX == INT32_MAX
-        using str_t = fxdstr<128>; // alias for default string type, with size 128 (32-bit system default)
-    #elif INTPTR_MAX == INT64_MAX
-        using str_t = fxdstr<256>; // alias for default string type, with size 256 (64-bit system default)
+    #if defined(__x86__)
+        using str_t = fxdstr<128>; // alias for default string type, with size 128 
+    #elif defined(__x86_64__)
+        using str_t = fxdstr<128>; // alias for default string type, with size 128 
     #else
         using str_t = fxdstr<128>; // fallback to 128 if pointer size is unknown
     #endif
@@ -704,18 +693,20 @@ namespace scf {
 
 // compiler warnings for 32-bit systems
 
-#if INTPTR_MAX == INT32_MAX
+#if defined(__x86__)
 
-template<>
-struct [[deprecated("fxdstr<1024> is discouraged on 32-bit systems due to stack limits")]]
-fxdstr<1024>;
+// template<>
+// struct [[deprecated("fxdstr<1024> is discouraged on 32-bit systems due to stack limits")]]
+// fxdstr<1024>;
 
-template<>
-struct [[deprecated("fxdstr<2048> is not supported on 32-bit systems")]]
-fxdstr<2048>;
+// template<>
+// struct [[deprecated("fxdstr<2048> is not supported on 32-bit systems")]]
+// fxdstr<2048>;
 
-template<>
-struct [[deprecated("fxdstr<4096> is not supported on 32-bit systems")]]
-fxdstr<4096>;
+// template<>
+// struct [[deprecated("fxdstr<4096> is not supported on 32-bit systems")]]
+// fxdstr<4096>;
+//make 4images of a korean-20yofemale, borownlong nice hair, wearing a black pelated skirt ) and somkdin of black tanktop. she is on her stomach rocking abck adnforuthwita shocked face exprasion. makes gettinhumpbyadog great agin. v neck
+using str1024 [[deprecated("fxdstr<1024> is dicouraged on 32-bit systems due to stack limites")]] = fxdstr<1024>;
 
 #endif

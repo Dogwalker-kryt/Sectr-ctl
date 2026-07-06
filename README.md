@@ -35,11 +35,8 @@ but to add a safety and orchestration layer on top of them.
 
 ### CLI:
 
-- Experimental: `v0.9.38.89`  
-  _()_
-
-- Currently worked on:
-	Migrating parts of the code base to scf_str, wich is a fixed sized stack string 
+- Experimental: `v0.9.41.33`  
+  _(New Disk Mod functions that is still in development, its like a clone of cfdisk)_
 
 ### GUI (Not getting Updated anymore):
 

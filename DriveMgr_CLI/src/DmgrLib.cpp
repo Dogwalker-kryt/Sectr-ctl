@@ -110,7 +110,7 @@ str1024 filePathHandler(const str<986> &file_path) {
     const char* username = sudo_user ? sudo_user : user_env;
 
     if (!username) {
-        std::cerr << RED << "[ERROR] Could not determine username.\n" << RESET;
+        scf::println_cerr(RED, "[LOG_ERROR] Could not determine username.", RESET);
         LOG_ERROR("Could not determine username");
         return "";
     }
@@ -118,12 +118,12 @@ str1024 filePathHandler(const str<986> &file_path) {
     const struct passwd* pw = getpwnam(username);
 
     if (!pw) {
-        std::cerr << RED << "[ERROR] Could not get home directory for user: " << username << RESET << "\n";
+        scf::println_cerr(RED, "[LOG_ERROR] Could not get home directory for user: ", username, RESET);
         LOG_ERROR("Failed to get home directory for user: " + to_str64(username));
         return "";
     }
 
-    str1024 homeDir = pw->pw_dir;
+    str_t homeDir = pw->pw_dir;
     str1024 path = homeDir + file_path;
     
     return path;
@@ -131,44 +131,38 @@ str1024 filePathHandler(const str<986> &file_path) {
 
 
 // ========= input validation =========
+template<size_t N>
+str<N> readLine() {
+    str<N> str;
 
-std::string readLine() {
-    std::string s;
-
-    if (!std::getline(std::cin, s)) {
-        
-        ERR(ErrorCode::IOError, "std::getline() failed");
-        LOG_ERROR("std::getline() failed");
-        return "";
+    if (!scf::read(str, N)) {
+       ERR(ErrorCode::FailedInput, "Failed to read input");
+       LOG_ERROR("scf::read<>() failed to get input");
+       return "";
     }
 
+    return str;
+}
+
+std::string readLine_stdstr() {
+    std::string s;
+    std::cin >> s;
     return s;
 }
 
 namespace InputValidation {
 
     scf::optional<int> getInt(const std::vector<int> &valid_ints) {
-        const std::string s_input = readLine();
-        
-        if (!std::cin.good()) {
-
-            ERR(ErrorCode::IOError, "Failed to read input");
-            return scf::nullopt;
-
-        }
+        const str_t s_input = readLine<128>();
 
         if (s_input.empty()) {
-
-            ERR(ErrorCode::InvalidInput, "Input cannot be empty");
-            LOG_ERROR("Input is empty");
             return scf::nullopt;
-
         }
 
         try {
 
             size_t idx = 0;
-            const int i_input = std::stoi(s_input, &idx);
+            const int i_input = std::stoi(s_input.c_str(), &idx);
 
             if (idx != s_input.size()) {
 
@@ -213,23 +207,10 @@ namespace InputValidation {
     }
 
     scf::optional<unsigned int> getUint() {
-        std::string s_input = readLine();
-        
-        // Case 1: getline failed → s_input == "" AND stream is bad
-        if (!std::cin.good()) {
+        scf::str256 s_input = readLine<256>();
 
-            ERR(ErrorCode::IOError, "Failed to read input");
-            return scf::nullopt;
-
-        }
-
-        // Case 2: user entered empty line → s_input == "" but stream is fine
         if (s_input.empty()) {
-
-            ERR(ErrorCode::InvalidInput, "Input cannot be empty");
-            LOG_ERROR("Input is empty");
             return scf::nullopt;
-
         }
 
         try {
@@ -263,27 +244,11 @@ namespace InputValidation {
     }
 
     scf::optional<char> getChar(const std::vector<char> &valid_chars) {
-        const std::string s_input = readLine();
+        const str8 input = readLine<8>();
 
-        if (!std::cin.good()) {
+        const std::string trimmed = StrUtils::trimWhiteSpace(scf::to_std_str(input));
 
-            ERR(ErrorCode::IOError, "Failed to read input");
-            LOG_ERROR("std::getline() failed");
-            return scf::nullopt;
-
-        }
-
-        const std::string trimmed = StrUtils::trimWhiteSpace(s_input);
-
-        if (trimmed.size() != 1) {
-
-            ERR(ErrorCode::InvalidInput, "Input must be exactly one character");
-            LOG_ERROR("Input has more than one non-whitespace character");
-            return scf::nullopt;
-
-        }
-
-        const char c_input = trimmed[0];
+        const char c_input = trimmed[0];        
 
         if (!valid_chars.empty() && std::find(valid_chars.begin(), valid_chars.end(), c_input) == valid_chars.end()) {
 
@@ -296,8 +261,8 @@ namespace InputValidation {
         return c_input;
     }
 
-    scf::optional<std::string> getString(const uint32_t &string_size) {
-        const std::string s_input = readLine();
+    scf::optional<std::string> getString(const size_t string_size) {
+        const std::string s_input = readLine_stdstr();
 
         if (!std::cin.good()) {
 
@@ -369,7 +334,7 @@ bool askForConfirmation(const str1024 &prompt) {
 }
 
 void menuQues(bool& running) {   
-    scf::println(BOLD, "\nPress '1' for returning to the main menu, '2' to exit:\n", RESET);
+    scf::lnprintln(BOLD, "Press any key to return to the main menu, '2' to exit:", RESET);
 
     auto menuques = InputValidation::getInt({1, 2});
 
@@ -405,4 +370,10 @@ bool checkRootMetadata() {
         return false;
     }
     return true;
+}
+
+void printFunctionHeader(const char* __s) {
+    system("clear");
+    flush_stdout();
+    println_flush(BOLD, "[      ", __s, "      ]", RESET);
 }

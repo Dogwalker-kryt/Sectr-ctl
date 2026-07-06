@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include "../globals.h"
+#include "scf/scf_io.hpp"
 
 //extern bool g_no_color;
 
@@ -42,6 +43,8 @@ enum class ErrorCode {
     FileNotFound,
     CorruptedData,
     DataUnavailable,
+    NoInput,
+    FailedInput,
     Unknown
 };
 
@@ -58,17 +61,19 @@ inline const char* errorMessage(ErrorCode code) {
         case ErrorCode::FileNotFound: return "File not found";
         case ErrorCode::CorruptedData: return "Data is corrupted";
         case ErrorCode::DataUnavailable: return "Data is unavailable";
+        case ErrorCode::NoInput: return "Input was empty";
+        case ErrorCode::FailedInput: return "Input failed";
         default: return "Unknown Error";
     }
 }
 
 inline int printError(ErrorCode code, const scf::str2048& extra_msg, const char* file, int line, const char* func) {
-    std::cerr << Color::red_err() 
-              << Color::bold_err()
-              << "[ERROR] " << Color::reset_err() << Color::red_err() << errorMessage(code)
-              << " (" << file << ":" << line << ", " << func << ")"
-              << " - " << extra_msg
-              << Color::reset_err() << "\n";
+    scf::println_cerr( Color::red_err() 
+              , Color::bold_err()
+              , "[ERROR] ", Color::reset_err(), Color::red_err(), errorMessage(code)
+              , " (", file, ":", line, ", ", func, ")"
+              , " - ", extra_msg
+              , Color::reset_err());
     return 1;
 }
 
