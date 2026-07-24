@@ -1,0 +1,99 @@
+#include "../include/LDM_updater.h"
+
+
+
+LDMUpdater::Version_int LDMUpdater::parseVersionVals(const str_t &v) {
+    Version_int ver;
+    str_t ver_str = v;
+
+    if (!ver_str.empty() && (ver_str[0] == 'v' || ver_str[0] == 'V')) {
+        ver_str.erase(0, 1);
+     }
+
+    size_t dash_pos = ver_str.find('-');
+    if (dash_pos != scf::str_t::npos) {
+        ver_str.substr(dash_pos);
+    }
+
+    std::stringstream ss(ver_str.to_std_str<16>());
+    char dot;
+    ss >> ver.major_realease >> dot
+        >> ver.major >> dot 
+        >> ver.minor >> dot 
+        >> ver.patch;
+    return ver;
+}
+
+int LDMUpdater::comparing_versions(const Version_int &version_local, const Version_int &version_github) {
+    if (version_local.major_realease != version_github.major_realease) {
+        return (version_local.major_realease < version_github.major_realease) ? -1 : 1;
+    }
+    if (version_local.major != version_github.major) {
+        return (version_local.major < version_github.major) ? -1 : 1;
+    }
+    if (version_local.minor != version_github.minor) {
+        return (version_local.minor < version_github.minor) ? -1 : 1;
+    }
+    if (version_local.patch != version_github.patch) {
+        return (version_local.patch < version_github.patch) ? -1 : 1;
+    }
+    return 0;
+}
+
+std::string LDMUpdater::getVersionGithub() {
+    scf::str1024 cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
+    auto res = EXEC_QUIET_SUDO(cmd);
+    std::string json = res.output;
+
+    size_t pos = json.find("\"tag_name\"");
+    if (pos == scf::str_t::npos) {
+        return "";
+    }
+
+    pos = json.find(":", pos);
+    pos = json.find("\"", pos) + 1;
+    size_t end = json.find("\"", pos);
+    size_t version_length = end - pos;
+    return json.substr(pos, version_length);
+}
+
+void LDMUpdater::updaterMain(const std::string &LOCAL_VERSION) {
+    scf::lnprintln(YELLOW, "[INFO] ", RESET, "Make sure you are connected to the internet");
+
+    std::string dev_suffix;
+
+    if (LOCAL_VERSION.find("dev") != scf::str_t::npos || LOCAL_VERSION.find("dev") != scf::str_t::npos) {
+        dev_suffix = YELLOW + "[INFO]" + RESET + " Local version contains " + BOLD + "'dev'." + RESET + " Local version is a developer/custom/other release build";    
+    }
+
+    Version_int local_version = parseVersionVals(LOCAL_VERSION);
+    std::string remote_version_str = getVersionGithub();
+    Version_int remote_version = parseVersionVals(remote_version_str);
+
+    int cmp = comparing_versions(local_version, remote_version);
+
+    if (cmp < 0) {
+        scf::lnprintln(YELLOW, "[UPDATE] ", RESET, "New version available: ", remote_version_str);
+        scf::println(
+            "If you'd like to update, you can visit the GitHub releases page: "
+            , BLUE , "https://github.com/Dogwalker-kryt/Sectr-ctl/releases" , RESET , "\n"
+            , "Just reinstall the latest version (you may want to back up your config file first).\n"
+            , "If you're happy with your current version, feel free to keep using it — no pressure at all."
+        );
+
+    } else if (cmp > 0) {
+        scf::lnprintln(YELLOW, "[INFO]", RESET, " Local version is newer (probably dev build or custom build)");
+
+        if (!dev_suffix.empty()) {
+            scf::lnprintln(dev_suffix);
+        }
+
+    } else {
+        scf::lnprintln(GREEN, "[INFO]", RESET, " You are up to date.");
+
+        if (!dev_suffix.empty()) {
+            scf::lnprintln(dev_suffix);
+        }
+    }
+}
+
