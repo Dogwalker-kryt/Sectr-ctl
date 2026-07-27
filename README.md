@@ -35,8 +35,8 @@ but to add a safety and orchestration layer on top of them.
 
 ### CLI/TUI:
 
-- Experimental: `v0.9.41.33`  
-  _(New Disk Mod functions that is still in development, its like a clone of cfdisk)_
+- Experimental: `v0.9.42.38`  
+  _(some internal changes, nothing user relevant)_
 
 ### GUI (Not getting Updated anymore):
 
