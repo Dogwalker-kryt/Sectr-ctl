@@ -58,6 +58,8 @@ namespace Globals{
     /** @brief Global variable to enable/disable smart metadata in the metadata function */
     extern bool smart_data;
 
+    extern bool force_default_case;
+
     // === altTerminal Screen ===
     /**
      * @brief Enters into a Alternate Terminal Screen

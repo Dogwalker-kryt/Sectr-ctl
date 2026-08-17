@@ -23,6 +23,7 @@
 #include "scf_exception.hpp"
 #include "scf_cutils.hpp"
 #include "scf_string_view.hpp"
+#include "scf_type_traits.hpp"
 
 #ifdef SCF_ALLOW_STL
 #include <iostream>
@@ -55,9 +56,11 @@ public:
 
     fxdstr(const char* str) {
         if (str) {
-            size_t n = scf::strlen(str);
+            const size_t n = scf::strlen(str);
+
             if (n > N) throw scf::length_error("[SCF_length_error] String too long");
-            scf::strncpy(buffer_, str, N);
+
+            scf::memcpy(buffer_, str, n);
             len = n;
         }
     }
@@ -168,8 +171,8 @@ public:
     // --- Capacity ---
     size_t size() const { return len; }
     size_t length() const { return len; }
-    size_t max_size() const { return N; }
-    size_t capacity() const { return N; }
+    // size_t max_size() const { return N - 1; }
+    size_t capacity() const { return N - 1; }
     bool empty() const { return len == 0; }
 
     // Set length (caller must ensure buffer is null-terminated and valid)
@@ -194,7 +197,7 @@ public:
     }
     fxdstr& append(const char* str) {
         if (str) {
-            size_t n = scf::strlen(str);
+            size_t n = scf::strnlen(str, N);
             if (len + n > N) throw scf::length_error("[SCF_length_error] String too long");
             scf::strncpy(buffer_ + len, str, n);
             len += n;
@@ -467,7 +470,6 @@ public:
 };
 
 
-
 // --- Non-member functions ---
 
 // fxdstr + fxdstr
@@ -609,25 +611,25 @@ namespace scf {
     }
 
     // Generic to_scf_str for arithmetic types with improved format handling. converts a value to fxdstr
-    template<size_t N, typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+    template<size_t N, typename T, typename = scf::type_traits::scf_enable_if_t<scf::type_traits::is_arithmetic_v<T>>>
     fxdstr<N> to_scf_str(const T& value) {
         fxdstr<N> out;
         char temp[N + 1];
         // Determine format string based on type
         const char* fmt;
-        if constexpr (std::is_same_v<T, int>) fmt = "%d";
-        else if constexpr (std::is_same_v<T, unsigned int>) fmt = "%u";
-        else if constexpr (std::is_same_v<T, long>) fmt = "%ld";
-        else if constexpr (std::is_same_v<T, unsigned long>) fmt = "%lu";
-        else if constexpr (std::is_same_v<T, long long>) fmt = "%lld";
-        else if constexpr (std::is_same_v<T, unsigned long long>) fmt = "%llu";
-        else if constexpr (std::is_same_v<T, float>) fmt = "%f";
-        else if constexpr (std::is_same_v<T, double>) fmt = "%lf";
-        else if constexpr (std::is_same_v<T, long double>) fmt = "%Lf";
-        else if constexpr (std::is_same_v<T, char>) fmt = "%c";
-        else if constexpr (std::is_same_v<T, unsigned char>) fmt = "%u";
-        else if constexpr (std::is_same_v<T, short>) fmt = "%d";
-        else if constexpr (std::is_same_v<T, unsigned short>) fmt = "%u";
+        if constexpr (scf::type_traits::is_same_v<T, int>) fmt = "%d";
+        else if constexpr (scf::type_traits::is_same_v<T, unsigned int>) fmt = "%u";
+        else if constexpr (scf::type_traits::is_same_v<T, long>) fmt = "%ld";
+        else if constexpr (scf::type_traits::is_same_v<T, unsigned long>) fmt = "%lu";
+        else if constexpr (scf::type_traits::is_same_v<T, long long>) fmt = "%lld";
+        else if constexpr (scf::type_traits::is_same_v<T, unsigned long long>) fmt = "%llu";
+        else if constexpr (scf::type_traits::is_same_v<T, float>) fmt = "%f";
+        else if constexpr (scf::type_traits::is_same_v<T, double>) fmt = "%lf";
+        else if constexpr (scf::type_traits::is_same_v<T, long double>) fmt = "%Lf";
+        else if constexpr (scf::type_traits::is_same_v<T, char>) fmt = "%c";
+        else if constexpr (scf::type_traits::is_same_v<T, unsigned char>) fmt = "%u";
+        else if constexpr (scf::type_traits::is_same_v<T, short>) fmt = "%d";
+        else if constexpr (scf::type_traits::is_same_v<T, unsigned short>) fmt = "%u";
         else fmt = "%d"; // fallback
         
         int written = snprintf(temp, N + 1, fmt, value);

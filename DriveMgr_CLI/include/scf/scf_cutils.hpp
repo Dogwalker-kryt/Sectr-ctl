@@ -7,38 +7,72 @@
 #include <unistd.h>
 
 namespace scf {
-
+constexpr size_t npos = static_cast<size_t>(-1);
 // --- String Length ---
+
+/**
+ * @brief little bit better strlen
+ * @returns npos [ (size_t)18446744073709551615UL ] if fails
+ * @return self explanatory
+ */
 inline size_t strlen(const char* str) {
-    if (!str) return 0;
+    if (!str) return npos;
+    const char *s = str;
+    while (*s) s++;
+    return s - str;
+}
+
+/**
+ * @brief little bit better strnlen
+ * @returns npos [ (size_t)18446744073709551615UL ] if fails
+ * @return self explanatory
+ */
+inline size_t strnlen(const char *str, size_t max_n) {
+    if (!str) return npos;
     size_t len = 0;
-    while (str[len] != '\0') ++len;
+    while (len < max_n && str[len] != '\0') ++len;
     return len;
 }
 
-inline size_t strnlen(const char *str, size_t max_n) {
-    if (!str) return 0;
-    size_t len = 0;
-    while (str[len] != '\0' || str[len] < max_n) ++len;
-    return len;
-}
 
 // --- String copy n ---
 inline char* strncpy(char* dest, const char* src, size_t n) {
-    for (size_t i = 0; i < n && src[i] != '\0'; ++i) {
+    size_t i{};
+
+    while (i < n && src[i] != '\0') {
         dest[i] = src[i];
+        ++i;
     }
-    // Pad the rest with null terminators (optional)
-    for (size_t i = strlen(src); i < n; ++i) {
-        dest[i] = '\0';
+    
+    dest[i] = '\0';
+
+    return dest;
+}
+
+inline char* strlcpy(char* dest, const char* src) {
+    const size_t src_len = strlen(src);
+    const size_t dest_len = strlen(dest);
+
+    if (dest_len < src_len) {
+        return (char*)src;
     }
+
+    size_t i{};
+
+    while (i < src_len) {
+        dest[i] = src[i];
+        ++i;
+    }
+
+    dest[src_len] = '\0';
+
     return dest;
 }
 
 // --- Memory Copy ---
-inline void* memcpy(void* dest, const void* src, size_t n) {
-    char* d = static_cast<char*>(dest);
-    const char* s = static_cast<const char*>(src);
+inline void* memcpy(void* dest, const void* src, size_t n) noexcept {
+    unsigned char* d = static_cast<unsigned char*>(dest);
+    const unsigned char* s = static_cast<const unsigned char*>(src);
     for (size_t i = 0; i < n; ++i) {
         d[i] = s[i];
     }
@@ -46,7 +80,7 @@ inline void* memcpy(void* dest, const void* src, size_t n) {
 }
 
 // --- Memory Compare ---
-inline int memcmp(const void* s1, const void* s2, size_t n) {
+inline int memcmp(const void* s1, const void* s2, size_t n) noexcept {
     const unsigned char* p1 = static_cast<const unsigned char*>(s1);
     const unsigned char* p2 = static_cast<const unsigned char*>(s2);
     for (size_t i = 0; i < n; ++i) {
@@ -57,7 +91,7 @@ inline int memcmp(const void* s1, const void* s2, size_t n) {
     return 0;
 }
 
-inline constexpr int constexpr_memcmp(const void* s1, const void* s2, size_t n) {
+inline constexpr int constexpr_memcmp(const void* s1, const void* s2, size_t n) noexcept  {
     const unsigned char* p1 = static_cast<const unsigned char*>(s1);
     const unsigned char* p2 = static_cast<const unsigned char*>(s2);
     for (size_t i = 0; i < n; ++i) {

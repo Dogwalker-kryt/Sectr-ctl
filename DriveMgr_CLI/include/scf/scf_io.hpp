@@ -84,9 +84,9 @@ namespace detail {
     }
 
     // bool
-    inline int to_cstr(bool value, char* out, int max) {
-        return to_cstr(value ? "true" : "false", out, max);
-    }
+    // inline int to_cstr(bool value, char* out, int max) {
+    //     return to_cstr(value ? "true" : "false", out, max);
+    // }
 
     // char[]
     template<size_t N>
