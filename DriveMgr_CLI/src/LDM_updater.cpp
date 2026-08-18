@@ -41,7 +41,7 @@ int LDMUpdater::comparing_versions(const Version_int &version_local, const Versi
 }
 
 std::string LDMUpdater::getVersionGithub() {
-    scf::str1024 cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
+    scf::str128 cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
     auto res = EXEC_QUIET_SUDO(cmd);
     std::string json = res.output;
 

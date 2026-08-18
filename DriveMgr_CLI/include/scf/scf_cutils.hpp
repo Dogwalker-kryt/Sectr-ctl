@@ -1,10 +1,8 @@
 // scf_cutils.hpp
 #pragma once
 
-#include <stdio.h>
 #include "scf_type_traits.hpp"
 #include <limits.h>
-#include <unistd.h>
 
 namespace scf {
 constexpr size_t npos = static_cast<size_t>(-1);

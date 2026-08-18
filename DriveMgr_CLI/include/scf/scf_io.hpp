@@ -18,10 +18,8 @@
 
 // scf_io.hpp
 #pragma once
-#include <stdio.h>
 #include "scf_cutils.hpp"
 #include "scf_type_traits.hpp"
-#include <stdlib.h>
 #include <unistd.h>
 #include "config.hpp"
 #include "scf_str.hpp"
