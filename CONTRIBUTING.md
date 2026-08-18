@@ -97,20 +97,21 @@ This project follows a "Lean & DIY" philosophy. We prefer standard C++ and nativ
 
 ### Environment
 *   **Compiler:** `g++` with **C++17** support.
-*   **Operating System:** Linux (Required for system-level commands).
+*   **Operating System:** Linux.
 *   **System Dependencies:** 
     *   `openssl` (For cryptographic operations).
     *   `smartmontools` (Required for disk health/data retrieval).
     *   Standard Linux utilities (`dd`, `sync`, `sudo`, etc.).
 
 ### Core Guidelines
-*   **Standard Library First:** Always prioritize the **C++ Standard Library** and native **Linux System APIs**. 
+*   **Standard Library First:** Always prioritize the **C++ Standard Library** and native **Linux System APIs**, The C++ STL should be tryed to be avoided and replaced with the SCF framework provided in the include/scf path (for some use cases like if its harder or not possible with SCF to make a feature, then feel free to use the C++ STD and STL). 
 *   **Avoid External Bloat:** Do not pull in heavy external libraries (e.g., JSON parsers, Boost). If a task seems impossible without a new library, please open an issue to discuss it first.
 
 ### Internal API & Tooling
 To maintain consistency across the codebase, please use our internal handlers instead of raw `std::cout` or `exit()`:
 
-*   **Logging:** Use `Logger::log()`. Reference **`DmgrLib.h`** to understand how the `g_no_log` flag and formatting work.
+*   **Logging:** Use `LOG_ERR`, etc. Reference **`DmgrLib.h`**
 *   **Error Handling:** Use the `ERR()` function for critical failures. Reference **`debug.h`** for valid `ErrorCode` definitions and safety requirements.
+*   **SCF Framework:** Use the SCF framework (`scf::` namespcace) in reaplacement of the STL
 
 > **Note:** Before contributing, please read the implementation in the header files mentioned above to ensure your code integrates correctly with our memory and error management.
