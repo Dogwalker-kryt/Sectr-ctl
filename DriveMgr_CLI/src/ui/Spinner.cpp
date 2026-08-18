@@ -1,7 +1,6 @@
 #include "../include/ui/Spinner.hpp"
-#include "../include/scf/scf_io.hpp"
 
-std::array<std::string, 4> SimpleSpinner::frames = {"|", "/", "—", "\\"};
+scf::array<scf::str8, 4> SimpleSpinner::frames = {"|", "/", "—", "\\"};
 int SimpleSpinner::idx = 0;
 
 void SimpleSpinner::tick() {

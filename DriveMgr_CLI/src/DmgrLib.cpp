@@ -13,13 +13,13 @@ enum class LogType {
 
 const char* Logger::logMessage(LogType log_type) {
     switch (log_type) {
-        case LogType::ERROR: return "[ERROR] ";
-        case LogType::WARNING: return "[WARNING] ";
-        case LogType::INFO: return "[INFO] ";
-        case LogType::SUCCESS: return "[SUCCESS] ";
-        case LogType::DRYRUN: return "[DRY-RUN] ";
-        case LogType::EXEC: return "[EXEC] ";
-        default: return "[UNKNOWN] ";
+        case LogType::ERROR: return err_s;
+        case LogType::WARNING: return warn_s;
+        case LogType::INFO: return info_s;
+        case LogType::SUCCESS: return success_s;
+        case LogType::DRYRUN: return dryrun_s;
+        case LogType::EXEC: return exec_s;
+        default: return unknown_s;
     }
 }
 
@@ -295,8 +295,8 @@ namespace InputValidation {
 
 // ==================== Side/Helper Functions ====================
 
-str<10> confirmationKeyGenerator() {
-    std::array<char, 62> chars_for_key = {
+const scf::str<10> confirmationKeyGenerator() {
+    constexpr scf::array<char, 62> chars_for_key = {
         'a','b','c','d','e','f','g','h','i','j',
         'k','l','m','n','o','p','q','r','s','t',
         'u','v','w','x','y','z',
@@ -310,7 +310,7 @@ str<10> confirmationKeyGenerator() {
 
     std::uniform_int_distribution<> dist(0, chars_for_key.size() - 1);
 
-    str<10> generated_key;
+    scf::str<10> generated_key;
 
     for (int i = 0; i < 10; i++) {
         generated_key += chars_for_key[dist(gen)];
@@ -319,8 +319,8 @@ str<10> confirmationKeyGenerator() {
     return generated_key;
 }
 
-bool askForConfirmation(const str1024 &prompt) {
-    std::cout << prompt << "(y/n)\n";
+const bool askForConfirmation(const str1024 &prompt) {
+    scf::println(prompt, "(y/n)");
     auto confirm = InputValidation::getChar({'y', 'n'});
     if (!confirm.has_value()) return false;
 
@@ -350,11 +350,11 @@ void menuQues(bool& running) {
     }
 }
 
-bool isRoot() {
+const bool isRoot() {
     return (getuid() == 0);
 }
 
-bool checkRoot() {
+const bool checkRoot() {
     if (!isRoot()) {
         ERR(ErrorCode::PermissionDenied, "This function requires root privileges. Please run with 'sudo'");
         LOG_ERROR("Attempted to run without root privileges");
@@ -363,7 +363,7 @@ bool checkRoot() {
     return true;
 }
 
-bool checkRootMetadata() {
+const bool checkRootMetadata() {
     if (!isRoot()) {
         scf::println_cerr(YELLOW, "[WARNING] Running without root may limit functionality. For full access, please run with 'sudo'.\n", RESET);
         LOG_WARNING("Running without root privileges");
@@ -376,4 +376,9 @@ void printFunctionHeader(const char* __s) {
     system("clear");
     flush_stdout();
     println_flush(BOLD, "[      ", __s, "      ]", RESET);
+}
+
+void cleanExit() {
+    scf::print(LEAVETERMINALSCREEN);
+    exit(1);
 }

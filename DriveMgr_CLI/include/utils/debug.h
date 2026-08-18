@@ -45,7 +45,8 @@ enum class ErrorCode {
     DataUnavailable,
     NoInput,
     FailedInput,
-    Unknown
+    Unknown, 
+    Undefined
 };
 
 inline const char* errorMessage(ErrorCode code) {

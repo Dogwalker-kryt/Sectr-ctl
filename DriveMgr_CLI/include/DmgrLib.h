@@ -46,6 +46,8 @@
 
 #include "scf/scf.hpp"
 
+#define RANDOM_NUMBER 569876;
+
 using namespace scf;
 
 // ==================== Color ====================
@@ -109,6 +111,14 @@ private:
         DRYRUN,
         EXEC
     };
+
+    constexpr static const char* err_s = "[ERROR] ";
+    constexpr static const char* warn_s = "[WARNING] ";
+    constexpr static const char* info_s = "[INFO] ";
+    constexpr static const char* success_s = "[SUCCESS] ";
+    constexpr static const char* dryrun_s = "[DRY-RUN] ";
+    constexpr static const char* exec_s = "[EXEC] ";
+    constexpr static const char* unknown_s = "[UNKNOWN] ";
 
     /**
      * @brief map the log types from LogTypes to string
@@ -357,13 +367,13 @@ str1024 filePathHandler(const str<986> &file_path);
  * @brief Generates a random 10-character confirmation key consisting of uppercase letters, lowercase letters, and digits.
  * @return A randomly generated confirmation key as a string.
  */
-fxdstr<10> confirmationKeyGenerator();
+const scf::str<10> confirmationKeyGenerator();
 
 /**
  * @brief Prompts the user for a yes/no confirmation with a custom message.
  * @param prompt The message to display to the user when asking for confirmation.
  */
-bool askForConfirmation(const str1024 &prompt);
+const bool askForConfirmation(const str1024 &prompt);
 
 /**
  * @brief This is the End question that is promted when a function failed/finished
@@ -374,26 +384,28 @@ void menuQues(bool& running);
 /**
  * @brief Checks if the binary is run as root
  */
-bool isRoot();
+const bool isRoot();
 
 /**
  * @brief isRoot() wrapper with error message
  */
-bool checkRoot();
+const bool checkRoot();
 
 /**
  * @brief isRoot() wrapper with error message, specificly for metadata operations
  */
-bool checkRootMetadata();
+const bool checkRootMetadata();
 
 /**
  * Helper function to check if a file exists at the given path.
  * @param path The file path to check.
  * @return true if the file exists, false otherwise.
  */
-static bool fileExists(const str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
+static const bool fileExists(const str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
 
 void printFunctionHeader(const char *__s);
+
+void cleanExit();
 
 /**
  * @brief Lamba that extracts 

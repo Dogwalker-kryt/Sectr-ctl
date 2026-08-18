@@ -19,7 +19,7 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.42.38
+// v0.9.45.66_dev
 
 // C++ libraries
 #include <regex>
@@ -39,8 +39,8 @@
 #include "../include/DiskMod.hpp"
 
 // ==== definitions ====
-#define VERSION scf::str32("v0.9.42.38")
-std::string version_str = VERSION.to_std_str();
+#define VERSION scf::str32("v0.9.45.66_dev")
+const std::string version_str = VERSION.to_std_str();
 
 // ========== Partition Management ========== 
 // should be removed and replaced
@@ -284,7 +284,7 @@ class PartitionsUtils {
         }
 };
 
-void listpartisions() { 
+static void listpartisions() { 
     const scf::str512 drive_name = ListDrivesUtil::listDrives(true); 
 
     scf::lnprintln("\nPartitions of drive ", drive_name, ":");
@@ -388,7 +388,7 @@ void listpartisions() {
 
 // ========== Disk Space Analysis ==========··−·
 
-void analyzeDiskSpace() {
+static void analyzeDiskSpace() {
     printFunctionHeader("Disk space analyze");
     const scf::str512 drive_name = ListDrivesUtil::listDrives(true); 
 
@@ -576,7 +576,7 @@ public:
     static void formatDriveWithLabelAndFS(const scf::str512& drive, const scf::str32& label, const scf::str16& fs) { format_drive(drive, label, fs); }
 };
 
-void formatDrive() {
+static void formatDrive() {
     scf::println("INFO: Standard formatting will automaticlly use ext4 filesystem");
     int fdinput = GenericMenuIO::noColorTuiMenu("Format", {{1, "Format drive"}, {2, "Format drive with label"}, {3, "Format drive with label and filesystem"}, {0, "Exit"} });
     
@@ -637,32 +637,20 @@ void formatDrive() {
 
 // ========== Drive Health Check ==========
 
-int checkDriveHealth() {
+static void checkDriveHealth() {
     printFunctionHeader("Disk health");
     const scf::str512 driveHealth_name = ListDrivesUtil::listDrives(true);
-
-    try {
-
-        const scf::str1024 health_cmd = "smartctl -H " + driveHealth_name;
-        const auto res = EXEC_QUIET_SUDO(health_cmd);
-        const std::string health_output = StrUtils::removeFirstLines(res.output, 3); 
-        scf::println(health_output);
-
-    } catch(const std::exception& e) {
-
-        scf::str256 error = e.what();
-        LOG_ERROR(error);
-        ERR(ErrorCode::ProcessFailure, error);
-
-    }
-
-   return 0;
+    const scf::str1024 health_cmd = "smartctl -H " + driveHealth_name;
+    const auto res = EXEC_QUIET_SUDO(health_cmd);
+    const std::string health_output = StrUtils::removeFirstLines(res.output, 3); 
+    scf::println(health_output);
+   return;
 }
 
 
 // ========== Drive Resizing ==========
 // should be removed and replaced
-void resizeDrive() {
+static void resizeDrive() {
     scf::lnprintln_flush("[Resize Drive]");
     const scf::str_t driveName = ListDrivesUtil::listDrives(true);
 
@@ -1123,7 +1111,7 @@ public:
 // ========== Drive Data Overwriting ==========
 // Tried my best to make this as safe and readable and maintainable as possible. v0.9.12.92
 
-void overwriteDriveData() { 
+static void overwriteDriveData() { 
     printFunctionHeader("Disk Overwriting");
     const scf::str512 drive_to_operate_on = ListDrivesUtil::listDrives(true);
 
@@ -1142,16 +1130,16 @@ void overwriteDriveData() {
 
     scf::lnprintln("To be sure you want to overwrite the data on ", BOLD, drive_to_operate_on, RESET, " you need to enter the following safety key");
 
-    const std::string conf_key = confirmationKeyGenerator();
+    const scf::str<10> conf_key = confirmationKeyGenerator();
     LOG_INFO("Confirmation key generated for overwriting drive: " + drive_to_operate_on);
 
     scf::println(conf_key);
-    scf::println("\nEnter the confirmation key:");
+    scf::lnprintln("Enter the confirmation key:");
 
-    auto user_input = InputValidation::getString(10);
+    const auto user_input = InputValidation::getString(10);
     if (!user_input.has_value()) return;
 
-    if (user_input != conf_key) {
+    if (user_input.value().c_str() != conf_key.c_str()) {
 
         scf::println(BOLD, "[INFO]", RESET, " The confirmationkey was incorrect, the overwriting process has been interupted\n");
         LOG_INFO("Incorrect confirmation key entered, overwriting process aborted for drive: " + drive_to_operate_on);
@@ -1162,34 +1150,25 @@ void overwriteDriveData() {
     scf::lnprintln(YELLOW, "[Process]", RESET, " Proceeding with overwriting all data on: ", drive_to_operate_on);
     scf::println(" \n");
 
-    try {
-        const auto res_urandom = EXEC_SUDO_SPINNER("dd if=/dev/urandom of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
-        const auto res_zero = EXEC_SUDO_SPINNER("dd if=/dev/zero of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
+    const auto res_urandom = EXEC_SUDO_SPINNER("dd if=/dev/urandom of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
+    const auto res_zero = EXEC_SUDO_SPINNER("dd if=/dev/zero of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
             
-        if (!res_urandom.success && !res_zero.success) {
+    if (!res_urandom.success && !res_zero.success) {
 
-            ERR(ErrorCode::ProcessFailure, "Failed to overwrite the drive: " + drive_to_operate_on);
-            LOG_ERROR("Overwriting failed to complete for drive: " + drive_to_operate_on);
-            return;
-
-        } else if (!res_urandom.success || !res_zero.success) {
-
-            scf::println(YELLOW, "[Warning]", RESET, " One of the overwriting operations failed, but the drive may have been partially overwritten. Please check the output and try again if necessary.");
-            LOG_WARNING("One of the overwriting operations failed for drive: " + drive_to_operate_on);
-            return;
-        } 
-
-        scf::println(GREEN, "[Success]", RESET, " Overwriting completed successfully for drive: ", drive_to_operate_on);
-        LOG_SUCCESS("Overwriting completed successfully for drive: " + drive_to_operate_on);
+        ERR(ErrorCode::ProcessFailure, "Failed to overwrite the drive: " + drive_to_operate_on);
+        LOG_ERROR("Overwriting failed to complete for drive: " + drive_to_operate_on);
         return;
 
-    } catch (const std::exception& e) {
+    } else if (!res_urandom.success || !res_zero.success) {
 
-        LOG_ERROR("Failed during overwriting process for drive: " + drive_to_operate_on + " Reason: " + scf::to_str64(e.what()));
-        ERR(ErrorCode::ProcessFailure, "Exception during overwriting process: " + scf::to_str64(e.what()));
+        scf::println(YELLOW, "[Warning]", RESET, " One of the overwriting operations failed, but the drive may have been partially overwritten. Please check the output and try again if necessary.");
+        LOG_WARNING("One of the overwriting operations failed for drive: " + drive_to_operate_on);
         return;
+    } 
 
-    }
+    scf::println(GREEN, "[Success]", RESET, " Overwriting completed successfully for drive: ", drive_to_operate_on);
+    LOG_SUCCESS("Overwriting completed successfully for drive: " + drive_to_operate_on);
+    return;
 }
 
 
@@ -2282,8 +2261,10 @@ class Clone {
 
 // ========== Log Viewer Utility ==========
 
-static void logViewer() {
-    printFunctionHeader("Log viewer");
+static void logViewer(bool turn_off_print_f_header = false) {
+    if (!turn_off_print_f_header) {
+        printFunctionHeader("Log viewer");
+    }
 
     std::ifstream file(Globals::log_path);
 
@@ -2299,29 +2280,53 @@ static void logViewer() {
 
     scf::lnprintln_flush("Log file content:");
 
-    const scf::static_unordered_map<const char*, scf::str8, 5> log_tags {
-        {"[ERROR]", RED},
-        {"[EXEC]",  CYAN},
-        {"[WARNING]", YELLOW},
-        {"[DRY-RUN]", MAGENTA},
-        {"[SUCCESS]", GREEN}
-    };
-
     std::string line;
 
     while (std::getline(file, line)) {
         bool matching = false;
 
-        for (const auto& [log_tag, color] : log_tags) {
+        const auto first_close = line.find(']');
 
-            if (line.find(log_tag) != scf::str_t::npos) {
+        if (first_close == std::string::npos) { 
+            ERR(ErrorCode::Undefined, "first ']' was not found in 'line'; returned npos"); 
+            LOG_ERROR("first ']' was not found in 'line'; returned npos; logViewer()");
+            return;
+        }
 
-                scf::println(color, line, RESET);
+        const auto tag_start = line.find('[', first_close + 1);
 
+        if (tag_start == std::string::npos || tag_start + 1 >= line.size()) {
+            ERR(ErrorCode::Undefined, "second '[' was not found in 'line'; returned npos");
+            LOG_ERROR("second '[' was not found in 'line'; returned npos; logViewer()");
+            return;
+        }
+
+        const char tag_id = line[tag_start + 1];
+
+        switch (tag_id) {
+            case 'E':
+                if (line[tag_start + 2] == 'R') { scf::println(RED, line, RESET); }
+                else if (line[tag_start + 2] == 'X') {scf::println(CYAN, line, RESET); }
                 matching = true;
-
                 break;
-            }
+
+            case 'W':
+                scf::println(YELLOW, line, RESET);
+                matching = true;
+                break;
+
+            case 'D':
+                scf::println(MAGENTA, line, RESET);
+                matching = true;
+                break;
+
+            case 'S':
+                scf::println(GREEN, line, RESET);
+                matching = true;
+                break;
+
+            default:
+                break;
         }
 
         if (!matching) {
@@ -2334,11 +2339,7 @@ static void logViewer() {
     const auto clear_loggs = InputValidation::getChar({'y', 'n'});
     if (!clear_loggs.has_value()) return;
 
-    if (clear_loggs == 'y') {
-
-        Logger::clearLoggs(Globals::log_path);
-
-    }
+    if (clear_loggs == 'y') { Logger::clearLoggs(Globals::log_path); }
 
     return;
 }
@@ -2359,8 +2360,91 @@ class ConfigValueHandeling {
             bool SMART_DATA = false;
         };
 
+        static void printConfig(const CONFIG_VALUES &cfg) {
+            scf::lnprintln("┌─────", BOLD, " config values ", RESET, "─────┐");
+            scf::println("│ UI mode: ", cfg.UI_MODE);
+            scf::println("│ Compile mode: ", cfg.COMPILE_MODE);
+            scf::println("│ Dry run mode: ", cfg.DRY_RUN_MODE);
+            scf::println("│ Root mode: ", cfg.ROOT_MODE);
+            scf::println("│ Theme Color: ", cfg.THEME_COLOR_MODE);
+            scf::println("│ Selection Color: ", cfg.SELECTION_COLOR_MODE);
+            scf::println("│ Smart metadata: ", cfg.SMART_DATA);
+            scf::println("└─────────────────────────┘");   
+        }
+
+        static void configEditor(CONFIG_VALUES cfg) {
+            printFunctionHeader("Config Editor");
+
+            printConfig(cfg);
+
+            if (Globals::config_path.empty()) {
+                return;
+            }            
+
+            scf::lnprintln("Do you want to edit the config file? (y/n)");
+            
+            const auto config_edit_confirm = InputValidation::getChar({'y', 'n'}); 
+            if (!config_edit_confirm.has_value()) return; 
+
+            if (config_edit_confirm != 'y') return;
+
+            if (!std::filesystem::exists(Globals::lume_path)) {
+
+                ERR(ErrorCode::FileNotFound, "Lume editor not found at: " + scf::to_str512(Globals::lume_path));
+                LOG_ERROR("Lume editor missing at: " + scf::to_str512(Globals::lume_path));
+                return;
+
+            }
+
+            if (!std::filesystem::exists(Globals::config_path)) {
+
+                ERR(ErrorCode::FileNotFound, "Config file not found at: " + scf::to_str512(Globals::config_path));
+                LOG_ERROR("Config file missing at: " + scf::to_str512(Globals::config_path));
+                return;
+
+            }
+
+            const scf::str1024 cmd = "\"" + scf::to_str256(Globals::lume_path) + "\" \"" + scf::to_str256(Globals::config_path) + "\"";
+
+            scf::println_flush(LEAVETERMINALSCREEN);
+            term.restoreTerminal();
+
+            system(cmd.c_str());
+
+            scf::println_flush(NEWTERMINALSCREEN);
+
+            term.enableRawMode();
+            return;      
+        }
+
+        static CONFIG_VALUES config_init() {
+            CONFIG_VALUES cfg = configHandler();
+            colorThemeHandler(cfg);
+            return cfg;
+        }
+
+    private: 
+        static void colorThemeHandler(const CONFIG_VALUES &cfg) {
+
+            if (Globals::g_no_color) {
+                Globals::g_THEME_COLOR = RESET;
+                Globals::g_SELECTION_COLOR = RESET;
+                return;
+            }
+
+            auto theme_color = available_colores.find(cfg.THEME_COLOR_MODE);
+            if (theme_color != available_colores.end()) {
+                Globals::g_THEME_COLOR = theme_color->second;
+            }
+
+            auto selection_color = available_colores.find(cfg.SELECTION_COLOR_MODE);
+            if (selection_color != available_colores.end()) {
+                Globals::g_SELECTION_COLOR = selection_color->second;
+            }
+        }
+
         static CONFIG_VALUES configHandler() {
-            CONFIG_VALUES cfg{}; 
+            CONFIG_VALUES cfg; 
 
             if (Globals::g_config_src_flag == true) {
 
@@ -2405,7 +2489,6 @@ class ConfigValueHandeling {
                 std::string key = line.substr(0, pos);
                 std::string value = line.substr(pos + 1);
 
-                // trim whitespace
                 key = StrUtils::trimWhiteSpace(key);
                 value = StrUtils::trimWhiteSpace(value);
 
@@ -2428,96 +2511,6 @@ class ConfigValueHandeling {
                 
             }
             return cfg;
-        }
-
-        static void printConfig(const CONFIG_VALUES &cfg) {
-            scf::lnprintln("┌─────", BOLD, " config values ", RESET, "─────┐");
-            scf::println("│ UI mode: ", cfg.UI_MODE);
-            scf::println("│ Compile mode: ", cfg.COMPILE_MODE);
-            scf::println("│ Dry run mode: ", cfg.DRY_RUN_MODE);
-            scf::println("│ Root mode: ", cfg.ROOT_MODE);
-            scf::println("│ Theme Color: ", cfg.THEME_COLOR_MODE);
-            scf::println("│ Selection Color: ", cfg.SELECTION_COLOR_MODE);
-            scf::println("│ Smart metadata: ", cfg.SMART_DATA);
-            scf::println("└─────────────────────────┘");   
-        }
-
-        static void configEditor() {
-            printFunctionHeader("Config Editor");
-
-            CONFIG_VALUES cfg = configHandler();
-
-            printConfig(cfg);
-
-            if (Globals::config_path.empty()) {
-                return;
-            }            
-
-            scf::lnprintln("Do you want to edit the config file? (y/n)");
-            
-            const auto config_edit_confirm = InputValidation::getChar({'y', 'n'}); 
-            if (!config_edit_confirm.has_value()) return; 
-
-            if (config_edit_confirm != 'y') return;
-
-            if (!std::filesystem::exists(Globals::lume_path)) {
-
-                ERR(ErrorCode::FileNotFound, "Lume editor not found at: " + scf::to_str512(Globals::lume_path));
-                LOG_ERROR("Lume editor missing at: " + scf::to_str512(Globals::lume_path));
-                return;
-
-            }
-
-            if (!std::filesystem::exists(Globals::config_path)) {
-
-                ERR(ErrorCode::FileNotFound, "Config file not found at: " + scf::to_str512(Globals::config_path));
-                LOG_ERROR("Config file missing at: " + scf::to_str512(Globals::config_path));
-                return;
-
-            }
-
-            const scf::str1024 cmd = "\"" + scf::to_str256(Globals::lume_path) + "\" \"" + scf::to_str256(Globals::config_path) + "\"";
-
-            scf::println_flush( LEAVETERMINALSCREEN);
-            term.restoreTerminal();
-
-            system(cmd.c_str());
-
-            scf::println_flush(NEWTERMINALSCREEN);
-
-            term.enableRawMode();
-            return;      
-        }
-
-        static void colorThemeHandler() {
-            CONFIG_VALUES cfg = configHandler();
-
-            Globals::g_THEME_COLOR = RESET;
-            Globals::g_SELECTION_COLOR = RESET;
-
-            if (Globals::g_no_color) {
-
-                Globals::g_THEME_COLOR = RESET;
-                Globals::g_SELECTION_COLOR = RESET;
-                return;
-
-            }
-
-            auto theme_color = available_colores.find(cfg.THEME_COLOR_MODE);
-
-            if (theme_color != available_colores.end()) {
-
-                Globals::g_THEME_COLOR = theme_color->second;
-
-            }
-
-            auto selection_color = available_colores.find(cfg.SELECTION_COLOR_MODE);
-
-            if (selection_color != available_colores.end()) {
-
-                Globals::g_SELECTION_COLOR = selection_color->second;
-
-            }
         }
 };
 
@@ -2611,50 +2604,53 @@ public:
 
 // ========== Main Menu and Utilities ==========
 
-static void Info() {
-    printFunctionHeader("Info");
+static void Info(bool print_func_header_turn_off = false) {
+    if (!print_func_header_turn_off) { 
+        printFunctionHeader("Info");
+    }
     int setw_for_version = 0;
-    if (VERSION.rfind("_dev") != scf::str_t::npos) { setw_for_version = 84; } else { setw_for_version = 88; }
+    if (VERSION.find("_dev") != scf::str_t::npos) { setw_for_version = 84; } else { setw_for_version = 88; }
     scf::lnprintln(Globals::g_THEME_COLOR, "┌───────────────────────────────────────────────────", RESET, BOLD, " Info ", RESET, Globals::g_THEME_COLOR, "───────────────────────────────────────────────────┐", RESET);
     scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Welcome to Linux Drive Manager (DMgr / LDM) — a program for Linux to view and operate your storage devices.", Globals::g_THEME_COLOR, "│", RESET); 
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Warning! You should know the basics about drives so you don't lose any data.", scf::str64(31, ' '), Globals::g_THEME_COLOR, "│", RESET);
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "If you find problems or have ideas, visit the GitHub page and open an issue.", scf::str64(31, ' '), Globals::g_THEME_COLOR, "│", RESET);
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, BOLD, "Other info:", RESET, scf::str128(96, ' '), Globals::g_THEME_COLOR, "│", RESET);
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Version: ", BOLD, VERSION, RESET, scf::str128(setw_for_version, ' '), Globals::g_THEME_COLOR, "│", RESET);
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Github: ", BOLD, "https://github.com/Dogwalker-kryt/Sectr-ctl", RESET, scf::str64(56, ' '), Globals::g_THEME_COLOR, "│", RESET);
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Author: ", BOLD, "Dogwalker-kryt", RESET, scf::str128(85, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Warning! You should know the basics about drives so you don't lose any data.", scf::str<31>(31, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "If you find problems or have ideas, visit the GitHub page and open an issue.", scf::str<31>(31, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, BOLD, "Other info:", RESET, scf::str<96>(96, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Version: ", BOLD, VERSION, RESET, scf::str<88>(setw_for_version, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Github: ", BOLD, "https://github.com/Dogwalker-kryt/Sectr-ctl", RESET, scf::str<56>(56, ' '), Globals::g_THEME_COLOR, "│", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, "Author: ", BOLD, "Dogwalker-kryt", RESET, scf::str<85>(85, ' '), Globals::g_THEME_COLOR, "│", RESET);
     scf::println(Globals::g_THEME_COLOR, "└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘", RESET);
 }
 
 static void printUsage(const char* progname) {
     scf::println("Usage: ", progname, " [options]");
-    scf::println(BOLD , "Options:\n" , RESET 
-              , "  --version, -v       Print program version\n"
-              , "  --help, -h          Show this help and exit\n"
-              , "  --dry-run, -n       Do not perform destructive operations\n"
-              , "  --no-color, -nc     Disable colors (may affect the main menu)\n"
-              , "  --no-log, -nl       Disables all logging in the current session\n"
-              , "  --debug, -d         Enables debug messages in current session and Test option\n"
-              , "  --info, -i          Show program info\n"
-              , "  --logs, -l          Show log file content\n"
-              , "  --select <device>, -sd <device>         Pre select a drive you want to use\n"
-              , "  --config-src <path>, -cfg-src <path>    Use a diffrent config source temporalily\n"
-              , "  --stand-alone, -sa  Makes sectr run standalone with no logging, config and color\n"
-              , "  --config, -c        Prints config values of the current config\n"
-              , "  --operation         Goes directly to a specific operation without menu\n"
-              , "                      Available operations:\n"
-              , "                        --list\n"
-              , "                        --format\n"
-              , "                        --crypt\n"
-              , "                        --resize\n"
-              , "                        --health\n"
-              , "                        --analyze-space\n"
-              , "                        --overwrite\n"
-              , "                        --vmetadata\n"
-              , "                        --info\n"
-              , "                        --forensics\n"
-              , "                        --clone\n"
-              , "                        --partitioner");
+    scf::println(BOLD, "Options:\n", RESET ,
+              "  --version, -v       Print program version\n",
+              "  --help, -h          Show this help and exit\n",
+              "  --dry-run, -n       Do not perform destructive operations\n",
+              "  --no-color, -nc     Disable colors (may affect the main menu)\n",
+              "  --no-log, -nl       Disables all logging in the current session\n",
+              "  --debug, -d         Enables debug messages in current session and Test option\n",
+              "  --info, -i          Show program info\n",
+              "  --logs, -l          Show log file content\n",
+              "  --select <device>, -sd <device>         Pre select a drive you want to use\n",
+              "  --config-src <path>, -cfg-src <path>    Use a diffrent config source temporalily\n",
+              "  --stand-alone, -sa  Makes sectr run standalone with no logging, config and color\n",
+              "  --config, -cfg      Prints config values of the current config\n",
+              "  --smart-data, -sm   Enables smart data\n",
+              "  --operation         Goes directly to a specific operation without menu\n",
+              "                      Available operations:\n",
+              "                        --list\n",
+              "                        --format\n",
+              "                        --crypt\n",
+              "                        --resize\n",
+              "                        --health\n",
+              "                        --analyze-space\n",
+              "                        --overwrite\n",
+              "                        --vmetadata\n",
+              "                        --info\n",
+              "                        --forensics\n",
+              "                        --clone\n",
+              "                        --partitioner");
 }
 
 
@@ -2662,10 +2658,12 @@ static void notAvilable() {
     scf::println(BOLD, "[Attention] ", RESET ,"This function is not avilable in Stand alone mode (-sa)");
 }
 
-static void cleanExit() {
-    scf::print(LEAVETERMINALSCREEN);
-    exit(1);
-}
+struct arg_pair {
+    scf::str<25> long_name_;
+    scf::str8 short_name_;
+    std::function<void()> operation_;
+    bool exit_after_ = false;
+};
 
 // ==================== Main Function ====================
 
@@ -2673,9 +2671,21 @@ int main(int argc, char* argv[], char** envp) {
     Globals::version = VERSION;
     Globals::version_std_str = version_str;
 
+    ConfigValueHandeling::CONFIG_VALUES cfg{};
+
+    if (!Globals::stand_alone) {
+
+        cfg = ConfigValueHandeling::config_init();
+        bool dry_run_mode = cfg.DRY_RUN_MODE;
+    
+        if (dry_run_mode == true) {
+            Globals::g_dry_run = true;
+        }   
+    }
+
     { // cli cmd
 
-        const std::map<std::string, std::function<void()>> cli_commands = {
+        const std::unordered_map<std::string, std::function<void()>> cli_commands = {
             {"--list", []()         { scf::print(LEAVETERMINALSCREEN); ListDrivesUtil::listDrives(false); } },
             {"--format", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; formatDrive(); } },
             {"--crypt", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; USBEnDeCryptionUtils::mainUsbEnDecryption(); } }, 
@@ -2689,29 +2699,38 @@ int main(int argc, char* argv[], char** envp) {
             {"--fingerprint", []()  { term.enableTerminosInput_diableAltTerminal(); scf::print(LEAVETERMINALSCREEN); scf::print(LEAVETERMINALSCREEN); scf::print(LEAVETERMINALSCREEN); DriveFingerprinting::fingerprinting_main(); }}
         };
 
-        for (int i = 1; i < argc; i++) {
-            scf::str_t a(argv[i]); 
-            
-            if (a == "--no-color" || a == "-nc")                       { Globals::g_no_color = true; continue; }
+        const arg_pair arg_pairs[12] {
+            {"--no-color", "-nc", [](){Globals::g_no_color = true;}, false}, {"--no-log", "-nl", [](){Globals::g_no_log = true;}, false},
+            {"--smart-data", "-sm", [](){Globals::smart_data = true;}, false}, {"--debug", "-d", [](){Globals::g_debug = true;}, false},
+            {"--dry-run", "-n", [](){Globals::g_dry_run = true;}, false}, {"--help", "-h", [argv0 = argv[0]](){scf::print(LEAVETERMINALSCREEN); printUsage(argv0);}, true},
+            {"--config", "-cfg", [&cfg](){ConfigValueHandeling::printConfig(cfg);}, true},
+            {"--stand-alone", "-sa", [](){Globals::stand_alone = true; Globals::g_no_log = true; Globals::log_path = ""; Globals::config_path = ""; Globals::g_no_color = true;}, false},
+            {"--trigger-default", "-td", [](){Globals::force_default_case = true;}, false},
+            {"--version", "-v", [](){scf::println("Sectr-ctl version: ", VERSION);}, true},
+            {"--logs", "-l", [](){logViewer(true);}, true},
+            {"--info", "-i", [](){Info(true);}, true}
+        };
 
-            if (a == "--no-log" || a == "-nl")                         { Globals::g_no_log = true; continue; }
+        for (int i = 1; i < argc; ++i) {
+            scf::str_t arg = argv[i];
 
-            if (a == "--smart-data" || a == "-sm")                     { Globals::smart_data = true; continue; }
+            if (arg.empty()) {
+                continue;
+            }
 
-            if (a == "--help" || a == "-h")                            { scf::print(LEAVETERMINALSCREEN); printUsage(argv[0]); return 0; }
+            for (const auto& pair : arg_pairs) {
+                if (arg == pair.long_name_ || arg == pair.short_name_) {
+                    pair.operation_();
 
-            if (a == "--version" || a == "-v")                         { scf::print(LEAVETERMINALSCREEN); scf::println("Sectr-ctl version: ", VERSION); return 0; }
-            
-            if (a == "--debug" || a == "-d")                           { Globals::g_debug = true; continue; }
+                    if (pair.exit_after_) {
+                        return 0;
+                    }
 
-            if (a == "--logs" || a == "-l")                            { logViewer(); scf::print(LEAVETERMINALSCREEN); return 0; }
+                    continue;
+                }
+            }
 
-            if (a == "--dry-run" || a == "-n")                         { Globals::g_dry_run = true; continue; }
-
-            if (a == "--info" || a == "-i")                            { scf::print(LEAVETERMINALSCREEN); Info(); return 0; }
-
-            if (a == "--select" || a == "-sd")                         { 
-
+            if (arg == "--select" || arg == "-sd") {
                 Globals::g_selected_drive_by_flag = true; 
                 
                 if (i + 1 >= argc) {
@@ -2724,17 +2743,15 @@ int main(int argc, char* argv[], char** envp) {
                 i++;
                 
                 if (!fileExists(Globals::g_selected_drive)) {
-
                     ERR(ErrorCode::DeviceNotFound, "");
                     LOG_ERROR("The device: '" + Globals::g_selected_drive + "' could not be found");
                     cleanExit();
-
                 }
 
                 continue; 
             }
-
-            if (a == "--config-src" || a == "-cfg-src")                {
+            
+            if (arg == "--config-src" || arg == "-cfg-src") {
 
                 Globals::g_config_src_flag = true;
 
@@ -2752,59 +2769,28 @@ int main(int argc, char* argv[], char** envp) {
                 Globals::g_config_src_path = val_config_src_path;
 
                 if (!fileExists(Globals::g_config_src_path)) {
-
                     ERR(ErrorCode::FileNotFound, "Your custom config: '" + Globals::g_config_src_path + "coudnt be found");
                     LOG_ERROR("The file: '" + Globals::g_config_src_path + "' could not be found");
                     cleanExit();
-
                 } 
 
                 continue;
             }
 
-            if (a == "--config" || a == "-c")                          {
-
-                ConfigValueHandeling::CONFIG_VALUES cfg = ConfigValueHandeling::configHandler();
-                ConfigValueHandeling::printConfig(cfg);
-
+            auto cmd = cli_commands.find(arg.to_std_str());
+            if (cmd != cli_commands.end()) {
+                cmd->second();
+                return 0;
             }
 
-            if (a == "--stand-alone" || a == "-sa") {
-
-                Globals::stand_alone = true;
-
-                Globals::g_no_log = true;
-                Globals::log_path = "";
-                Globals::config_path = "";
-                Globals::g_no_color = true;
-
-            }
-
-            else {
-                auto cmd = cli_commands.find(argv[i]);
-                
-                if (cmd != cli_commands.end()) {
-                    cmd->second();
-                    return 0;
-                }
-            }
+            continue;
         }
 
     } // cli cmd
 
-    scf::print(NEWTERMINALSCREEN);
-
-    ConfigValueHandeling::colorThemeHandler();
-
-    ConfigValueHandeling::CONFIG_VALUES cfg = ConfigValueHandeling::configHandler();
-    bool dry_run_mode = cfg.DRY_RUN_MODE;
-
-    if (dry_run_mode == true) {
-        Globals::g_dry_run = true;
-    }
-
-
     // ===== TUI =====
+
+    scf::print(NEWTERMINALSCREEN);
 
     std::vector<std::pair<MenuOptionsMain, std::string>> menuItems = {
         {LISTDRIVES, "List Drives"},                            {FORMATDRIVE, "Format Drive"},                                  {ENCRYPTDECRYPTDRIVE, "Encrypt/Decrypt USB Drives"},
@@ -2821,14 +2807,16 @@ int main(int argc, char* argv[], char** envp) {
 
     if (Globals::stand_alone) {
         for (auto &item : menuItems) {
-            if (item.first == LOGVIEW || item.first == CONFIG) {
-                item.second += " (not avilable)";
+            if (item.first == LOGVIEW) {
+                item.second += BOLD + " (not avilable)                   " + RESET;
+            } else if (item.first == CONFIG) {
+                item.second += BOLD + " (not avilable)                " + RESET;
             }
         }
     }
 
     // func* for no_color 
-    using menu_renderer = int(*)(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
+    using menu_renderer = uint32_t(*)(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
     menu_renderer menu_render_strategy = nullptr;
 
     if (Globals::g_no_color == true) {
@@ -2843,9 +2831,13 @@ int main(int argc, char* argv[], char** envp) {
     while (running == true) {
         term.initiateTerminosInput();
 
-        int selected = menu_render_strategy(menuItems);
+        uint32_t selected = menu_render_strategy(menuItems);
+        uint32_t menuinput = menuItems[selected].first;
 
-        int menuinput = menuItems[selected].first;
+        if (Globals::force_default_case) {
+            menuinput = RANDOM_NUMBER;
+        } 
+
         switch (static_cast<MenuOptionsMain>(menuinput)) {
 
             case LISTDRIVES: {
@@ -2884,7 +2876,7 @@ int main(int argc, char* argv[], char** envp) {
 
             case CLONEDRIVE:            { if (!checkRoot()) { menuQues(running);} else { Clone::mainClone(); menuQues(running); } break; }
 
-            case CONFIG:                { if (Globals::stand_alone) { notAvilable(); } else { ConfigValueHandeling::configEditor(); } menuQues(running); break; }
+            case CONFIG:                { if (Globals::stand_alone) { notAvilable(); } else { ConfigValueHandeling::configEditor(cfg); } menuQues(running); break; }
 
             case FINGERPRINT:           { DriveFingerprinting::fingerprinting_main(); menuQues(running); break; }
 
@@ -2895,7 +2887,10 @@ int main(int argc, char* argv[], char** envp) {
                 // print_test_summary(res);
                 // menuQues(running); 
                 // break; 
-                DiskMod::main();
+                // DiskMod::main();
+                // menuQues(running);
+                // break;
+                std::cout << Globals::log_path << "\n";
                 menuQues(running);
                 break;
             }
@@ -2903,7 +2898,9 @@ int main(int argc, char* argv[], char** envp) {
             case EXITPROGRAM:           { running = false; break; }
 
             default: {
-                ERR(ErrorCode::Unknown, "Invalid selection; How the fuck would even trigger this happen???");
+                ERR(ErrorCode::Unknown, "Invalid selection: " + scf::to_str8(menuinput) + "; How the fuck would even trigger this happen???");
+                LOG_ERROR("Invalid menu selection triggered with menuinput = " + scf::to_str8(menuinput));
+                menuQues(running);
                 break;
             }
         }

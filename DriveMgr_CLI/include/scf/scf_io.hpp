@@ -18,10 +18,8 @@
 
 // scf_io.hpp
 #pragma once
-#include <stdio.h>
 #include "scf_cutils.hpp"
 #include "scf_type_traits.hpp"
-#include <stdlib.h>
 #include <unistd.h>
 #include "config.hpp"
 #include "scf_str.hpp"
@@ -84,9 +82,9 @@ namespace detail {
     }
 
     // bool
-    inline int to_cstr(bool value, char* out, int max) {
-        return to_cstr(value ? "true" : "false", out, max);
-    }
+    // inline int to_cstr(bool value, char* out, int max) {
+    //     return to_cstr(value ? "true" : "false", out, max);
+    // }
 
     // char[]
     template<size_t N>

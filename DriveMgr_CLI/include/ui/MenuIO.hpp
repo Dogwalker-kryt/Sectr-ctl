@@ -11,19 +11,31 @@ enum MenuOptionsMain {
     FINGERPRINT = 15,       UPDATER = 16,           TESTS = 17
 };
 
+struct menu_header_padding_t {
+    scf::str32 sleft_padding_;
+    scf::str32 sright_padding_;
+    scf::str64 header_content_;
+};
+
+static const menu_header_padding_t calcHeaderPadding(scf::str32 header_name, bool no_color_mode, size_t free_space_ = 46);
+
+static const scf::array<scf::str32, 3> header_names = {
+    "SECTR_CTL", "SECTR_CTL (debug)", "SECTR_CTL (stand alone)"
+};
+
 class MainMenuIO {
     public:
         /**
          * @brief Its the menu Tui selection with colors
          * @param menuItems its defined in the main functions, it contains all avilable menu items
          */
-        static int colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
+        static uint32_t colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
 
         /**
          * @brief Same shit as colorTuiMenu, but with no colors and ">" cursor
          * @param menuItems its defined in the main functions, it contains all avilable menu items
          */
-        static int noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
+        static uint32_t noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems);
 };
 
 class GenericMenuIO {
@@ -51,5 +63,5 @@ public:
      * @param title the title to display at the top of the menu
      * @param menuItems the list of menu items to display, each with an integer ID and a string label
      */
-    static int noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems);
+    static uint32_t noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems);
 };

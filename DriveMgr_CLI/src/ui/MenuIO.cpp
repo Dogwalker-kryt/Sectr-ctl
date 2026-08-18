@@ -1,37 +1,39 @@
 #include "../ui/MenuIO.hpp"
 
+static const menu_header_padding_t calcHeaderPadding(scf::str32 header_name_, bool no_color_mode, size_t free_space_) {
 
-int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems) {
+    const size_t header_name_len = header_name_.length();
+    const size_t version_len = Globals::version.length();
+    const size_t free_space = free_space_; // free white space between left border and right border; defautl is 46
+
+    const size_t total_header_len = header_name_len + version_len;
+    const float left_padding = (free_space_ - total_header_len) / 2;
+    const float right_padding = (free_space_ - left_padding) - total_header_len + (no_color_mode ? 4 : 0); 
+  
+    scf::str32 sleft_padding(left_padding, ' ');
+    scf::str32 sright_padding(right_padding, ' ');
+    scf::str64 header_content = header_name_ + " " + Globals::version; 
+
+    return {sleft_padding, sright_padding, header_content};
+}
+
+uint32_t MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems) {
     term.enableRawMode();
 
     int selected = 0;
     int total = (int)menuItems.size();
-
-    scf::array<scf::str32, 3> header_names = {
-        "SECTR_CTL", "SECTR_CTL (debug)", "SECTR_CTL (stand alone)"
-    };
 
     scf::str32 header_name = header_names[0];
 
     if (Globals::g_debug == true) { header_name = header_names[1]; }
     else if (Globals::stand_alone == true) { header_name = header_names[2]; }
 
-    const size_t header_name_len = header_name.length();
-    const size_t version_len = Globals::version.length();
-    const size_t free_space = 46; // free white space between left border and right border 
-    
-    const size_t total_header_len = header_name_len + version_len;
-    const float left_padding = (free_space - total_header_len) / 2;
-    const float right_padding = (free_space - left_padding) - total_header_len; // + 4, for the right border to alling with the box
-
-    scf::str32 sleft_padding(left_padding, ' ');
-    scf::str32 sright_padding(right_padding, ' ');
-    scf::str64 header_content = header_name + " " + Globals::version; 
+    const menu_header_padding_t header_padding = calcHeaderPadding(header_name, false);
 
     scf::print_flush("\033[2J\033[H");
     scf::println("Use Up/Down arrows and Enter to select an option.\n");
     scf::println(Globals::g_THEME_COLOR, "┌─────────────────────────────────────────────────┐", RESET);
-    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, BOLD, sleft_padding, header_content, sright_padding, RESET, Globals::g_THEME_COLOR, " │", RESET);
+    scf::println(Globals::g_THEME_COLOR, "│ ", RESET, BOLD, header_padding.sleft_padding_, header_padding.header_content_, header_padding.sright_padding_, RESET, Globals::g_THEME_COLOR, " │", RESET);
     scf::println(Globals::g_THEME_COLOR, "├─────────────────────────────────────────────────┤", RESET);
     for (size_t i = 0; i < menuItems.size(); ++i) {
 
@@ -72,7 +74,6 @@ int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::s
 
             std::cout << Globals::g_THEME_COLOR << "│ " << RESET;
 
-            // Apply inverse highlight if selected
             if (i == selected) std::cout << INVERSE;
             std::cout << innerStr;
             if (i == selected) std::cout << RESET;
@@ -105,37 +106,23 @@ int MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::s
     return selected;
 }
 
-int MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems) {
+uint32_t MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain, std::string>> &menuItems) {
     term.enableRawMode();
 
     int selected = 0;
     int total = (int)menuItems.size();
-
-    scf::array<scf::str32, 3> header_names = {
-        "SECTR_CTL", "SECTR_CTL (debug)", "SECTR_CTL (stand alone)"
-    };
 
     scf::str32 header_name = header_names[0];
 
     if (Globals::g_debug == true) { header_name = header_names[1]; }
     else if (Globals::stand_alone == true) { header_name = header_names[2]; }
 
-    const size_t header_name_len = header_name.length();
-    const size_t version_len = Globals::version.length();
-    const size_t free_space = 46; // free white space between left border and right border 
-    
-    const size_t total_header_len = header_name_len + version_len;
-    const float left_padding = (free_space - total_header_len) / 2;
-    const float right_padding = (free_space - left_padding) - total_header_len + 4; // + 4, for the right border to alling with the box
-
-    scf::str32 sleft_padding(left_padding, ' ');
-    scf::str32 sright_padding(right_padding, ' ');
-    scf::str64 header_content = header_name + " " + Globals::version; 
+    const menu_header_padding_t header_padding = calcHeaderPadding(header_name, true);
 
     scf::print_flush("\033[2J\033[H");
     scf::println("Use Up/Down arrows and Enter to select an option.\n");
     scf::println("┌─────────────────────────────────────────────────────┐");
-    scf::println("│ ", BOLD, sleft_padding, header_content, sright_padding, RESET, " │");
+    scf::println("│ ", BOLD, header_padding.sleft_padding_, header_padding.header_content_, header_padding.sright_padding_, RESET, " │");
     scf::println("├─────────────────────────────────────────────────────┤");
 
     for (size_t i = 0; i < menuItems.size(); ++i) {
@@ -231,7 +218,7 @@ void GenericMenuIO::printDash(size_t n) {
     scf::print(RESET);
 }
 
-int GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems) {
+uint32_t GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems) {
     term.enableRawMode();
 
     int selected = 0;

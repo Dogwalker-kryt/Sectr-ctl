@@ -356,6 +356,7 @@ public:
 
     // Direct access (use with care)
     const scf::array<pair<K, V>, N>& data() const { return data_; }
+
 };
 
 } // namespace scf

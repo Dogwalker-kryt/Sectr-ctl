@@ -26,3 +26,8 @@
 #include "scf_cutils.hpp"
 #include "scf_map.hpp"
 #include "scf_array.hpp"
+#include "result.hpp"
+#include "scf_span.hpp"
+#include "scf_ptr.hpp"
+#include "scf_conv.hpp"
+#include "scf_object.hpp"
