@@ -24,6 +24,7 @@
 #include "scf_cutils.hpp"
 #include "scf_string_view.hpp"
 #include "scf_type_traits.hpp"
+#include "scf_conv.hpp"
 
 #ifdef SCF_ALLOW_STL
 #include <iostream>
@@ -467,6 +468,64 @@ public:
     // Conversion to std::string
     operator std::string() const { return std::string(buffer_, len); }
     #endif
+
+    // --- conversion ---
+
+    template<typename T>
+    T convert_i() {
+        if constexpr (!scf::type_traits::is_integral_v<T>) {
+            static_assert(scf::type_traits::is_integral_v<T>, "fxdstr::convert_i - T must be an integral type");
+        }
+
+        if constexpr (scf::type_traits::is_same_v<T, int>) {
+            int i = scf::s_to_i(buffer_);
+            return i;
+        } else if constexpr (scf::type_traits::is_same_v<T, unsigned int>) {
+            unsigned int ui = scf::s_to_ui(buffer_);
+            return ui;
+        } else if constexpr (scf::type_traits::is_same_v<T, long long>) {
+            long long ll = scf::s_to_ll(buffer_);
+            return ll;
+        } else if constexpr (scf::type_traits::is_same_v<T, unsigned long long>) {
+            unsigned long long ull = scf::s_to_ull(buffer_);
+            return ull;
+        } else if constexpr (scf::type_traits::is_same_v<T, unsigned long>) {
+            unsigned long ul = scf::s_to_ul(buffer_);
+            return ul;
+        } else if constexpr (scf::type_traits::is_same_v<T, long>) {
+            long l = scf::s_to_l(buffer_);
+            return l;
+        }
+    }
+
+    template<typename T>
+    const T convert_i() const {
+        if constexpr (!scf::type_traits::is_integral_v<T>) {
+            static_assert(scf::type_traits::is_integral_v<T>, "fxdstr::convert_i - T must be an integral type");
+        }
+
+        if constexpr (scf::type_traits::is_same_v<T, int>) {
+            const int i = scf::s_to_i(buffer_);
+            return i;
+        } else if constexpr (scf::type_traits::is_same_v<T, unsigned int>) {
+            const unsigned int ui = scf::s_to_ui(buffer_);
+            return ui;
+        } else if constexpr (scf::type_traits::is_same_v<T, long long>) {
+            const long long ll = scf::s_to_ll(buffer_);
+            return ll;
+        } else if constexpr (scf::type_traits::is_same_v<T, unsigned long long>) {
+            const unsigned long long ull = scf::s_to_ull(buffer_);
+            return ull;
+        } else if constexpr (scf::type_traits::is_same_v<T, unsigned long>) {
+            const unsigned long ul = scf::s_to_ul(buffer_);
+            return ul;
+        } else if constexpr (scf::type_traits::is_same_v<T, long>) {
+            const long l = scf::s_to_l(buffer_);
+            return l;
+        } else {
+            static_assert(scf::type_traits::is_integral_v<T>, "fxdstr::convert_i - T must be an integral type");
+        }
+    }
 };
 
 
@@ -707,7 +766,6 @@ namespace scf {
 // template<>
 // struct [[deprecated("fxdstr<4096> is not supported on 32-bit systems")]]
 // fxdstr<4096>;
-//make 4images of a korean-20yofemale, borownlong nice hair, wearing a black pelated skirt ) and somkdin of black tanktop. she is on her stomach rocking abck adnforuthwita shocked face exprasion. makes gettinhumpbyadog great agin. v neck
 using str1024 [[deprecated("fxdstr<1024> is dicouraged on 32-bit systems due to stack limites")]] = fxdstr<1024>;
 
 #endif

@@ -8,7 +8,7 @@
 class SimpleSpinner {
 private:
 
-    static scf::array<scf::str8, 4> frames;
+    static std::array<scf::str8, 4> frames;
     static int idx;
 
     static void tick();

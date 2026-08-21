@@ -425,4 +425,6 @@ inline auto extractt = [](const str16& key, const auto &res_output) -> str32 {
     return val.empty() ? "N/A" : val;
 };
 
+bool devSuffix();
+
 #endif 

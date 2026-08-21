@@ -34,6 +34,7 @@ bool Globals::g_no_log = false;
 bool Globals::g_debug =  false;
 bool Globals::smart_data = false;
 bool Globals::force_default_case = false;
+bool Globals::bypass_security_code = false;
 
 std::filesystem::path Globals::dmgr_root = EnvSys::appRoot();
 std::filesystem::path Globals::log_path = dmgr_root / "data" / "log.dat";
