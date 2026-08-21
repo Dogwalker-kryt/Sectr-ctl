@@ -60,6 +60,8 @@ namespace Globals{
 
     extern bool force_default_case;
 
+    extern bool bypass_security_code;
+
     // === altTerminal Screen ===
     /**
      * @brief Enters into a Alternate Terminal Screen

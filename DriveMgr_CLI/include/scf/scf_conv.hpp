@@ -43,79 +43,68 @@ inline unsigned long long c_to_ull(char c_) {
     return 0;
 }
 
+template<typename T>
+inline bool s_to_integral(const char* s_, T& out) {
+    if (!s_) return false;
+
+    const char* end = s_;
+    while (*end != '\0') ++end;
+
+    return scf::cstr_to_integral(s_, end, out);
+}
+
+inline bool s_to_i(const char* s_, int& out) {
+    return s_to_integral(s_, out);
+}
+
 inline int s_to_i(const char* s_) {
     int result = 0;
+    return s_to_i(s_, result) ? result : -1;
+}
 
-    for (size_t i = 0; s_[i] != '\0'; ++i) {
-        if (s_[i] < '0' || s_[i] > '9') {
-            return -1; 
-        }
-
-        int digit = s_[i] - '0';
-        result = result * 10 + digit;
-    }
-
-    return result;
+inline bool s_to_ui(const char* s_, unsigned int& out) {
+    return s_to_integral(s_, out);
 }
 
 inline unsigned int s_to_ui(const char* s_) {
     unsigned int result = 0;
+    return s_to_ui(s_, result) ? result : 0;
+}
 
-    for (size_t i = 0; s_[i] != '\0'; ++i) {
-        if (s_[i] < '0' || s_[i] > '9') {
-            return 0; 
-        }
+inline bool s_to_l(const char* s_, long& out) {
+    return s_to_integral(s_, out);
+}
 
-        int digit = s_[i] - '0';
-        result = result * 10 + digit;
-    }
+inline long s_to_l(const char* s_) {
+    long result = 0;
+    return s_to_l(s_, result) ? result : 0;
+}
 
-    return result;
+inline bool s_to_ul(const char* s_, unsigned long& out) {
+    return s_to_integral(s_, out);
 }
 
 inline unsigned long s_to_ul(const char* s_) {
     unsigned long result = 0;
+    return s_to_ul(s_, result) ? result : 0;
+}
 
-    for (size_t i = 0; s_[i] != '\0'; ++i) {
-        if (s_[i] < '0' || s_[i] > '9') {
-            return 0; 
-        }
-
-        int digit = s_[i] - '0';
-        result = result * 10 + digit;
-    }
-
-    return result;
+inline bool s_to_ll(const char* s_, long long& out) {
+    return s_to_integral(s_, out);
 }
 
 inline long long s_to_ll(const char* s_) {
     long long result = 0;
+    return s_to_ll(s_, result) ? result : 0;
+}
 
-    for (size_t i = 0; s_[i] != '\0'; ++i) {
-        if (s_[i] < '0' || s_[i] > '9') {
-            return 0; 
-        }
-
-        int digit = s_[i] - '0';
-        result = result * 10 + digit;
-    }
-
-    return result;
+inline bool s_to_ull(const char* s_, unsigned long long& out) {
+    return s_to_integral(s_, out);
 }
 
 inline unsigned long long s_to_ull(const char* s_) {
     unsigned long long result = 0;
-
-    for (size_t i = 0; s_[i] != '\0'; ++i) {
-        if (s_[i] < '0' || s_[i] > '9') {
-            return 0; 
-        }
-
-        int digit = s_[i] - '0';
-        result = result * 10 + digit;
-    }
-
-    return result;
+    return s_to_ull(s_, result) ? result : 0;
 }
 
 

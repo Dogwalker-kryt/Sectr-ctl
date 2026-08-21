@@ -382,3 +382,7 @@ void cleanExit() {
     scf::print(LEAVETERMINALSCREEN);
     exit(1);
 }
+
+bool devSuffix() {
+    return (Globals::version.rfind("_dev") ? true : false);
+}

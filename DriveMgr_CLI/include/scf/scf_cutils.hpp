@@ -3,6 +3,7 @@
 
 #include "scf_type_traits.hpp"
 #include <limits.h>
+#include <stdalign.h>
 
 namespace scf {
 constexpr size_t npos = static_cast<size_t>(-1);
@@ -317,11 +318,14 @@ inline bool cstr_to_integral(const char* first, const char* last, T& out) {
     bool any_digit = false;
 
     while (p != last && *p >= '0' && *p <= '9') {
+
         any_digit = true;
         unsigned long long digit = static_cast<unsigned long long>(*p - '0');
+
         if (accum > ULLONG_MAX / 10ULL || (accum == ULLONG_MAX / 10ULL && digit > ULLONG_MAX % 10ULL)) {
             return false;
         }
+
         accum = accum * 10ULL + digit;
         ++p;
     }
@@ -329,24 +333,35 @@ inline bool cstr_to_integral(const char* first, const char* last, T& out) {
     if (!any_digit || p != last) return false;
 
     if constexpr (scf::type_traits::is_unsigned_v<T>) {
+
         if (negative) return false;
         if (accum > max_integral_value<T>()) return false;
         out = static_cast<T>(accum);
         return true;
+
     } else {
+
         if (negative) {
+
             unsigned long long limit = static_cast<unsigned long long>(-(min_integral_value<T>() + 1LL)) + 1ULL;
             if (accum > limit) return false;
+
             if (accum == limit) {
                 out = static_cast<T>(min_integral_value<T>());
             } else {
                 out = static_cast<T>(-static_cast<long long>(accum));
             }
+
             return true;
+
         } else {
+
             if (accum > static_cast<unsigned long long>(max_signed_integral_value<T>())) return false;
+
             out = static_cast<T>(accum);
+
             return true;
+
         }
     }
 }

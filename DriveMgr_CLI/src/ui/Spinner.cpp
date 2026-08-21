@@ -1,10 +1,11 @@
-#include "../include/ui/Spinner.hpp"
+#include "ui/Spinner.hpp"
 
-scf::array<scf::str8, 4> SimpleSpinner::frames = {"|", "/", "—", "\\"};
+std::array<scf::str8, 4> SimpleSpinner::frames = {"|", "/", "—", "\\"};
 int SimpleSpinner::idx = 0;
 
 void SimpleSpinner::tick() {
-    scf::print_flush("\r", frames[idx++ % 4], " Running...");
+    // scf::print_flush("\r", frames[idx++ % 4], " Running...");
+    std::cout << "\r" << frames[idx++ % 4] << " Running..." << std::flush;
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 }
 

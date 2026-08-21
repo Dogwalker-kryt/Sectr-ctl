@@ -19,11 +19,18 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.45.66_dev
+// v0.9.46.74_dev
 
 // C++ libraries
 #include <regex>
 #include <cstdint>
+
+// linux includes
+#include <fcntl.h>        
+#include <sys/ioctl.h>      
+#include <sys/stat.h>       
+#include <linux/fs.h>       
+#include <cerrno>      
 
 // openssl includes
 #include <openssl/sha.h>
@@ -39,7 +46,7 @@
 #include "../include/DiskMod.hpp"
 
 // ==== definitions ====
-#define VERSION scf::str32("v0.9.45.66_dev")
+#define VERSION scf::str32("v0.9.46.74_dev")
 const std::string version_str = VERSION.to_std_str();
 
 // ========== Partition Management ========== 
@@ -778,7 +785,7 @@ private:
 
         str<10> user_retyped_key = scf::read<str<10>>();
 
-        if (user_retyped_key != confirmation_key) {
+        if (!Globals::bypass_security_code && user_retyped_key != confirmation_key) {
 
             scf::println(YELLOW, "[INFO] ", RESET, "The key you retyped doesnt match the original key\n", "Process Aborted due to invalid input");
             LOG_INFO("The retyped key doesnt match the original key; Process Aborted due to invalid input");
@@ -803,7 +810,7 @@ private:
 
             str<10> confirm_key2_input = scf::read<str<10>>();
 
-            if (confirm_key2_input != confirm_key2) {
+            if (!Globals::bypass_security_code && confirm_key2_input != confirm_key2) {
 
                 scf::println(YELLOW, "[INFO] ", RESET, "The key you retyped doesnt match the original key\n", "Process Aborted due to invalid input");
                 LOG_INFO("The retyped key doesnt match the original key; Process Aborted due to invalid input");
@@ -1128,49 +1135,168 @@ static void overwriteDriveData() {
 
     }
 
-    scf::lnprintln("To be sure you want to overwrite the data on ", BOLD, drive_to_operate_on, RESET, " you need to enter the following safety key");
+    if (!Globals::bypass_security_code) {
 
-    const scf::str<10> conf_key = confirmationKeyGenerator();
-    LOG_INFO("Confirmation key generated for overwriting drive: " + drive_to_operate_on);
+        scf::lnprintln("To be sure you want to overwrite the data on ", BOLD, drive_to_operate_on, RESET, " you need to enter the following safety key");
 
-    scf::println(conf_key);
-    scf::lnprintln("Enter the confirmation key:");
+        scf::str<10> conf_key = confirmationKeyGenerator();
+        LOG_INFO("Confirmation key generated for overwriting drive: " + drive_to_operate_on);
 
-    const auto user_input = InputValidation::getString(10);
-    if (!user_input.has_value()) return;
+        scf::println(conf_key);
+        scf::lnprintln("Enter the confirmation key:");
 
-    if (user_input.value().c_str() != conf_key.c_str()) {
+        const auto user_input = InputValidation::getString(10);
+        if (!user_input.has_value()) return;
 
-        scf::println(BOLD, "[INFO]", RESET, " The confirmationkey was incorrect, the overwriting process has been interupted\n");
-        LOG_INFO("Incorrect confirmation key entered, overwriting process aborted for drive: " + drive_to_operate_on);
-        return;
+        if (user_input.value() != conf_key.to_std_str()) {
 
+            scf::println(BOLD, "[INFO]", RESET, " The confirmationkey was incorrect, the overwriting process has been interupted\n");
+            LOG_INFO("Incorrect confirmation key entered, overwriting process aborted for drive: " + drive_to_operate_on);
+            return;
+
+        }
     }
 
     scf::lnprintln(YELLOW, "[Process]", RESET, " Proceeding with overwriting all data on: ", drive_to_operate_on);
     scf::println(" \n");
 
-    const auto res_urandom = EXEC_SUDO_SPINNER("dd if=/dev/urandom of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
+    // const auto res_urandom = EXEC_SUDO_SPINNER("dd if=/dev/urandom of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
     const auto res_zero = EXEC_SUDO_SPINNER("dd if=/dev/zero of=" + drive_to_operate_on + " bs=16M >/dev/null 2>&1 && sync"); 
             
-    if (!res_urandom.success && !res_zero.success) {
+    // if (!res_urandom.success && !res_zero.success) {
 
+    //     ERR(ErrorCode::ProcessFailure, "Failed to overwrite the drive: " + drive_to_operate_on);
+    //     LOG_ERROR("Overwriting failed to complete for drive: " + drive_to_operate_on);
+    //     return;
+
+    // } else if (!res_urandom.success || !res_zero.success) {
+
+    //     scf::println(YELLOW, "[Warning]", RESET, " One of the overwriting operations failed, but the drive may have been partially overwritten. Please check the output and try again if necessary.");
+    //     LOG_WARNING("One of the overwriting operations failed for drive: " + drive_to_operate_on);
+    //     return;
+    // } 
+
+    if (!res_zero.success) {
         ERR(ErrorCode::ProcessFailure, "Failed to overwrite the drive: " + drive_to_operate_on);
         LOG_ERROR("Overwriting failed to complete for drive: " + drive_to_operate_on);
         return;
-
-    } else if (!res_urandom.success || !res_zero.success) {
-
-        scf::println(YELLOW, "[Warning]", RESET, " One of the overwriting operations failed, but the drive may have been partially overwritten. Please check the output and try again if necessary.");
-        LOG_WARNING("One of the overwriting operations failed for drive: " + drive_to_operate_on);
-        return;
-    } 
+    }
 
     scf::println(GREEN, "[Success]", RESET, " Overwriting completed successfully for drive: ", drive_to_operate_on);
     LOG_SUCCESS("Overwriting completed successfully for drive: " + drive_to_operate_on);
     return;
 }
 
+class OverwriteUtility {
+private:
+    enum class wipe_method {
+        SECURE_DISCARD,
+        DISCARD,
+        ZEROOUT,
+        WRITEZEROS
+    }; 
+
+
+    static bool confirm_key(const scf::str512& drive_to_op) {
+        if (!Globals::bypass_security_code) {
+            return true;
+        }
+        
+        scf::lnprintln("To be sure you want to overwrite the data on ", BOLD, drive_to_op, RESET, " you need to enter the following safety key");
+
+        scf::str<10> conf_key = confirmationKeyGenerator();
+        LOG_INFO("Confirmation key generated for overwriting drive: " + drive_to_op);
+
+        scf::println_cerr(conf_key);
+        scf::lnprintln("Enter the confirmation key:");
+
+        const auto user_input = InputValidation::getString(10);
+        if (!user_input.has_value()) return false;
+
+        if (user_input.value() != conf_key.to_std_str()) {
+
+            scf::println(BOLD, "[INFO]", RESET, " The confirmationkey was incorrect, the overwriting process has been interupted\n");
+            LOG_INFO("Incorrect confirmation key entered, overwriting process aborted for drive: " + drive_to_op);
+            return false;
+
+        }        
+
+        return true;
+    }
+
+    static scf::result<int, ErrorCode> drive_fd(const scf::str512& drive_to_op) {
+        const int fd = open(drive_to_op.c_str(), O_RDWR | O_EXCL | O_CLOEXEC);
+
+        if (fd < 0) {
+            ERR(ErrorCode::IOError, "Failed to open drive for overwriting: " + drive_to_op);
+            LOG_ERROR("Failed to open drive for overwriting: " + drive_to_op);
+            return scf::result<int, ErrorCode>::err(ErrorCode::IOError);
+        }         
+
+        return scf::result<int, ErrorCode>::ok(fd);
+    }
+
+    static const uint64_t read_sysfs_uint64(const scf::str512& path) {
+        std::ifstream sys_file(path.c_str());
+
+        uint64_t value = 0;
+
+        if (!(sys_file >> value)) {
+            return 0;
+        }
+
+        return value;
+    }
+
+public:
+    static void overwriter() {
+        printFunctionHeader("Disk Overwriting");
+        const scf::str512 drive_to_op = ListDrivesUtil::listDrives(true);
+
+        scf::println(YELLOW, "[WARNING]", RESET, " Are you sure you want to overwrite all data on ", BOLD, drive_to_op, RESET, "? This action cannot be undone! (y/n)");
+        
+        const auto confirm = InputValidation::getChar({'y', 'n'});
+        if (!confirm.has_value()) return;
+
+        if (confirm != 'y') {
+
+            scf::println(BOLD, "[Overwriting aborted]", RESET, " The Overwriting process of ", drive_to_op, " was interupted by user");
+            LOG_INFO("Overwriting process aborted by user for drive: " + drive_to_op);
+            return;
+
+        }
+
+        bool bconfirm = confirm_key(drive_to_op);
+        if (!bconfirm) return;
+
+        scf::lnprintln(YELLOW, "[Process]", RESET, " Proceeding with overwriting all data on: ", drive_to_op);
+        scf::println(" \n");
+
+        scf::result<int, ErrorCode> fd = drive_fd(drive_to_op);
+        if (fd.has_error()) return;
+
+        struct stat st{};
+        
+        if (fstat(fd.value(), &st) < 0 || !S_ISBLK(st.st_mode)) {
+            ERR(ErrorCode::IOError, "Failed to get drive size for overwriting: " + drive_to_op);
+            LOG_ERROR("Failed to get drive size for overwriting: " + drive_to_op);
+            close(fd.value());
+            return;
+        }
+
+        uint64_t drive_size = 0;
+
+        if (ioctl(fd.value(), BLKGETSIZE64, &drive_size) < 0) {
+            ERR(ErrorCode::IOError, "Failed to get drive size for overwriting: " + drive_to_op);
+            LOG_ERROR("Failed to get drive size for overwriting: " + drive_to_op);
+            close(fd.value());
+            return;
+        }
+
+        const uint64_t discard_max = read_sysfs_uint64("/sys/block/" + drive_to_op.substr(5, drive_to_op.length()) + "/queue/discard_max_bytes");
+        const uint64_t discard_granualarity = read_sysfs_uint64("/sys/block/" + drive_to_op.substr(5, drive_to_op.length()) + "/queue/discard_granualarity");
+    }
+};
 
 // ========== Drive Metadata Reader ==========
 
@@ -1401,14 +1527,13 @@ private:
 
             }
 
-            const scf::str<10> confirmation_key = confirmationKeyGenerator();
+            const scf::str16 confirmation_key = confirmationKeyGenerator();
             scf::println("\nEnter the confirmation key to proceed:");
             scf::println(confirmation_key);
                         
-            scf::str<10> user_key_input;
-            scf::read(user_key_input);
+            const scf::str16 user_key_input = scf::read<scf::str16>();
 
-            if (user_key_input != confirmation_key) {
+            if (!Globals::bypass_security_code && user_key_input != confirmation_key) {
 
                 ERR(ErrorCode::InvalidInput, "Incorrect confirmation key.");
                 LOG_ERROR("Incorrect confirmation key ");
@@ -1418,8 +1543,8 @@ private:
 
             scf::lnprintln(YELLOW, "[PROCESS]", RESET, " Burning ISO to device...");
 
-            scf::println(CYAN, "[Phase 1]:");
-            const auto unmount_res = EXEC_SUDO("umount " + drive_name + "* 2>/dev/null || true");
+            scf::lnprintln(CYAN, "[Phase 1]:");
+            const auto unmount_res = EXEC_SUDO_SPINNER("umount " + drive_name + "* 2>/dev/null || true");
             
             if (!unmount_res.success) {
 
@@ -1430,7 +1555,7 @@ private:
             }
 
             scf::lnprintln(CYAN, "[Phase 2]:");
-            const auto res = EXEC_SUDO("dd if=" + scf::to_str512(iso_path) + " of=" + drive_name + " bs=4M status=progress && sync"); 
+            const auto res = EXEC_SUDO_SPINNER("dd if=" + scf::to_str512(iso_path) + " of=" + drive_name + " bs=4M status=progress && sync"); 
 
             if (!res.success) {
 
@@ -2637,20 +2762,30 @@ static void printUsage(const char* progname) {
               "  --stand-alone, -sa  Makes sectr run standalone with no logging, config and color\n",
               "  --config, -cfg      Prints config values of the current config\n",
               "  --smart-data, -sm   Enables smart data\n",
-              "  --operation         Goes directly to a specific operation without menu\n",
-              "                      Available operations:\n",
-              "                        --list\n",
-              "                        --format\n",
-              "                        --crypt\n",
-              "                        --resize\n",
-              "                        --health\n",
-              "                        --analyze-space\n",
-              "                        --overwrite\n",
-              "                        --vmetadata\n",
-              "                        --info\n",
-              "                        --forensics\n",
-              "                        --clone\n",
-              "                        --partitioner");
+              "  --operation         Goes directly to a specific operation without menu\n");
+    if (!devSuffix()) { 
+        scf::println(
+            "                      Available operations:\n",
+            "                        --list\n",
+            "                        --format\n",
+            "                        --crypt\n",
+            "                        --resize\n",
+            "                        --health\n",
+            "                        --analyze-space\n",
+            "                        --overwrite\n",
+            "                        --vmetadata\n",
+            "                        --info\n",
+            "                        --forensics\n",
+            "                        --clone\n",
+            "                        --partitioner"
+        );
+    }
+
+    if (devSuffix()) {
+        println(BOLD, "Dev options:", RESET, '\n',
+        " --trigger-default, -td     Trigger default case in main switch case\n",
+        " --bypasssc, -bsc           Bypass secutrity confirmation key");
+    }
 }
 
 
@@ -2685,7 +2820,7 @@ int main(int argc, char* argv[], char** envp) {
 
     { // cli cmd
 
-        const std::unordered_map<std::string, std::function<void()>> cli_commands = {
+        const std::unordered_map<scf::str16, std::function<void()>> cli_commands = {
             {"--list", []()         { scf::print(LEAVETERMINALSCREEN); ListDrivesUtil::listDrives(false); } },
             {"--format", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; formatDrive(); } },
             {"--crypt", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; USBEnDeCryptionUtils::mainUsbEnDecryption(); } }, 
@@ -2696,19 +2831,20 @@ int main(int argc, char* argv[], char** envp) {
             {"--metadata", []()     { term.enableTerminosInput_diableAltTerminal(); if (!checkRootMetadata()) return; MetadataReader::mainReader(); } },
             {"--forensics", []()    { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; ForensicAnalysis::mainForensic(); } },
             {"--clone", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; Clone::mainClone(); } },
-            {"--fingerprint", []()  { term.enableTerminosInput_diableAltTerminal(); scf::print(LEAVETERMINALSCREEN); scf::print(LEAVETERMINALSCREEN); scf::print(LEAVETERMINALSCREEN); DriveFingerprinting::fingerprinting_main(); }}
+            {"--fingerprint", []()  { term.enableTerminosInput_diableAltTerminal(); DriveFingerprinting::fingerprinting_main(); }}
         };
 
-        const arg_pair arg_pairs[12] {
+        const arg_pair arg_pairs[13] {
             {"--no-color", "-nc", [](){Globals::g_no_color = true;}, false}, {"--no-log", "-nl", [](){Globals::g_no_log = true;}, false},
             {"--smart-data", "-sm", [](){Globals::smart_data = true;}, false}, {"--debug", "-d", [](){Globals::g_debug = true;}, false},
-            {"--dry-run", "-n", [](){Globals::g_dry_run = true;}, false}, {"--help", "-h", [argv0 = argv[0]](){scf::print(LEAVETERMINALSCREEN); printUsage(argv0);}, true},
+            {"--dry-run", "-n", [](){Globals::g_dry_run = true;}, false}, {"--help", "-h", [argv0 = argv[0]](){printUsage(argv0);}, true},
             {"--config", "-cfg", [&cfg](){ConfigValueHandeling::printConfig(cfg);}, true},
             {"--stand-alone", "-sa", [](){Globals::stand_alone = true; Globals::g_no_log = true; Globals::log_path = ""; Globals::config_path = ""; Globals::g_no_color = true;}, false},
             {"--trigger-default", "-td", [](){Globals::force_default_case = true;}, false},
             {"--version", "-v", [](){scf::println("Sectr-ctl version: ", VERSION);}, true},
             {"--logs", "-l", [](){logViewer(true);}, true},
-            {"--info", "-i", [](){Info(true);}, true}
+            {"--info", "-i", [](){Info(true);}, true},
+            {"--bypasssc", "-bsc", [](){Globals::bypass_security_code = true;}, false}
         };
 
         for (int i = 1; i < argc; ++i) {
@@ -2801,7 +2937,7 @@ int main(int argc, char* argv[], char** envp) {
         {UPDATER, "Updater"},                                   {EXITPROGRAM, "Exit"}
     };
 
-    if (Globals::g_debug || (VERSION.find("dev") != scf::str_t::npos) == true) {
+    if (Globals::g_debug || devSuffix()) {
         menuItems.insert(menuItems.end() - 1, {TESTS, "Tests"});
     }
 
@@ -2827,12 +2963,15 @@ int main(int argc, char* argv[], char** envp) {
 
     term.initiateTerminosInput();
 
+    uint32_t selected = 0;
+    uint32_t menuinput = 0;
+
     bool running = true;
     while (running == true) {
         term.initiateTerminosInput();
 
-        uint32_t selected = menu_render_strategy(menuItems);
-        uint32_t menuinput = menuItems[selected].first;
+        selected = menu_render_strategy(menuItems);
+        menuinput = menuItems[selected].first;
 
         if (Globals::force_default_case) {
             menuinput = RANDOM_NUMBER;
@@ -2888,9 +3027,7 @@ int main(int argc, char* argv[], char** envp) {
                 // menuQues(running); 
                 // break; 
                 // DiskMod::main();
-                // menuQues(running);
-                // break;
-                std::cout << Globals::log_path << "\n";
+                // auto res = EXEC_SPINNER("sleep 3 && echo $((1 + 1 + 2 + 3 * 108564 / 364 * 764759)) && sleep 3 &&  echo $((1 + 1 + 2 + 3 * 108564 / 364 * 764759)) && sleep 3");
                 menuQues(running);
                 break;
             }
