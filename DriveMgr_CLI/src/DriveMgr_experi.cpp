@@ -28,7 +28,8 @@
 // linux includes
 #include <fcntl.h>        
 #include <sys/ioctl.h>      
-#include <sys/stat.h>       
+#include <sys/stat.h> 
+#include <sys/statvfs.h>      
 #include <linux/fs.h>       
 #include <cerrno>      
 
@@ -46,7 +47,7 @@
 #include "../include/DiskMod.hpp"
 
 // ==== definitions ====
-#define VERSION scf::str32("v0.9.46.74")
+#define VERSION scf::str32("v0.9.46.74_dev")
 const std::string version_str = VERSION.to_std_str();
 
 // ========== Partition Management ========== 
@@ -1247,6 +1248,28 @@ private:
 
         return value;
     }
+
+    // enum class mount_state {
+    //     NOTMOUNTED,
+    //     MOUNTED,
+    // };
+
+    // static scf::result<mount_state, ErrorCode> mount_state(const scf::str512& disk) {
+        
+    // }
+
+    static scf::str512 mount_point_str(const scf::str512& disk) {
+        std::ifstream fp("/proc/self/mountinfo");
+    }
+
+    struct support {
+        bool blkdiscard = false;
+        bool blksecdiscard = false;
+    };
+    
+    static const support check_support(const scf::str512& disk) {
+
+    } 
 
 public:
     static void overwriter() {
