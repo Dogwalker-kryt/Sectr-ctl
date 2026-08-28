@@ -25,12 +25,27 @@
 #include "scf_string_view.hpp"
 #include "scf_type_traits.hpp"
 #include "scf_conv.hpp"
+#include "result.hpp"
+#include "scf_emtpy.hpp"
 
 #ifdef SCF_ALLOW_STL
 #include <iostream>
 #include <string>
 #include <string_view>
 #endif
+
+// #define SCF_STR_DONT_THROW
+
+namespace scf {
+    struct strerr_t {
+        explicit constexpr strerr_t() = default;
+    };
+
+    inline constexpr strerr_t strerr{};
+    inline constexpr strerr_t strerr_outof_range{};
+    inline constexpr strerr_t strerr_length{};
+
+};
 
 /**
  * @class fxdstr
@@ -55,6 +70,7 @@ public:
     fxdstr(const fxdstr&) = default;
     fxdstr& operator=(const fxdstr&) = default;
 
+    #ifndef SCF_STR_DONT_THROW
     fxdstr(const char* str) {
         if (str) {
             const size_t n = scf::strlen(str);
@@ -79,8 +95,35 @@ public:
         scf::strncpy(buffer_, other.c_str(), N);
         len = other.size();
     }
+    #else
+
+    fxdstr(const char* str) noexcept {
+        if (!str) return;
+
+        const size_t n = scf::min(scf::strlen(str), N);
+        scf::memcpy(buffer_, str, n);
+        
+        len = n;
+        buffer_[len] = '\0';
+    }
+
+    fxdstr(size_t count, char c) noexcept {
+        count = scf::min(count, N);
+        scf::fill_n(buffer_, count, c);
+        buffer_[count] = '\0';
+        len = count;
+    }
+
+    template<size_t M>
+    fxdstr(const fxdstr<M>& other) noexcept {
+        len = scf::min(other.size(), N);
+        scf::memcpy(buffer_, other.data(), len);
+        buffer_[len] = '\0';
+    }
+    #endif
 
     #ifdef SCF_ALLOW_STL
+    #ifndef SCF_STR_DONT_THROW
     // Constructor from std::string
     fxdstr(const std::string& str) {
         if (str.size() > N) throw scf::length_error("[SCF_length_error] String too long");
@@ -96,11 +139,30 @@ public:
         buffer_[sv.size()] = '\0';
         len = sv.size();
     }
+    #else
+
+    fxdstr(const std::string& str) noexcept {
+        const size_t n = scf::min(str.size(), N);
+        scf::strncpy(buffer_, str.c_str(), n);
+        buffer_[n] = '\0';
+        len = n;
+    }
+
+    fxdstr(std::string_view sv) noexcept {
+        const size_t n = scf::min(sv.size(), N);
+        scf::memcpy(buffer_, sv.data(), n);
+        buffer_[n] = '\0';
+        len = n;
+    }
+
     #endif
+    #endif
+
     // --- Assignment ---
+    #ifndef SCF_STR_DONT_THROW
     fxdstr& operator=(const char* str) {
         if (str) {
-            size_t n = scf::strlen(str);
+            const size_t n = scf::strlen(str);
             if (n > N) throw scf::length_error("[SCF_length_error] String too long");
             scf::strncpy(buffer_, str, N);
             len = n;
@@ -109,8 +171,20 @@ public:
         }
         return *this;
     }
+    #else
+    fxdstr& operator=(const char* str) noexcept {
+        if (str) {
+            const size_t n = scf::min(scf::strlen(str), N);
+            scf::strncpy(buffer_, str, n);
+            len = n;
+        } else {
+            clear();
+        }
+        return *this;
+    }
+    #endif
 
-    fxdstr& operator=(char c) {
+    fxdstr& operator=(char c) noexcept {
         buffer_[0] = c;
         buffer_[1] = '\0';
         len = 1;
@@ -118,6 +192,7 @@ public:
     }
 
     #ifdef SCF_ALLOW_STL
+    #ifndef SCF_STR_DONT_THROW
     fxdstr& operator=(const std::string& str) {
         if (str.size() > N) throw scf::length_error("[SCF_length_error] String too long");
         scf::strncpy(buffer_, str.c_str(), N);
@@ -133,8 +208,30 @@ public:
         len = sv.size();
         return *this;
     }
+    #else
+
+    fxdstr& operator=(const std::string& str) noexcept {
+        const size_t str_size = str.size();
+        const size_t n = scf::min(str_size, N);
+        scf::strncpy(buffer_, str.c_str(), n);
+        buffer_[str_size] = '\0';
+        len = str_size;
+        return *this;
+    }
+
+    fxdstr& operator=(const std::string_view& sv) noexcept {
+        const size_t sv_size = sv.size();
+        const size_t n = scf::min(sv_size, N);
+        scf::strncpy(buffer_, sv.data(), n);
+        buffer_[sv_size] = '\0';
+        len = sv_size;
+        return *this;
+    }
+
+    #endif
     #endif
 
+    #ifndef SCF_STR_DONT_THROW
     template<size_t M>
     fxdstr& operator=(const fxdstr<M>& other) {
         if (other.size() > N) throw scf::length_error("[SCF_length_error] String too long");
@@ -143,18 +240,43 @@ public:
         len = other.size();
         return *this;
     }
+    #else
+    template<size_t M>
+    fxdstr& operator=(const fxdstr<M>& other) noexcept {
+        const size_t osize = other.size();
+        const size_t n = scf::min(osize, N);
+        scf::strncpy(buffer_, other.data(), n);
+        buffer_[osize] = '\0';
+        len = osize;
+        return *this;
+    }
+    #endif
 
     // --- Element access ---
+
     char& operator[](size_t pos) { return buffer_[pos]; }
     const char& operator[](size_t pos) const { return buffer_[pos]; }
-    char& at(size_t pos) {
-        if (pos >= len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::at");
-        return buffer_[pos];
-    }
-    const char& at(size_t pos) const {
-        if (pos >= len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::at");
-        return buffer_[pos];
-    }
+
+    // #ifndef SCF_STR_DONT_THROW
+    // char& at(size_t pos) {
+    //     if (pos >= len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::at");
+    //     return buffer_[pos];
+    // }
+    // const char& at(size_t pos) const {
+    //     if (pos >= len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::at");
+    //     return buffer_[pos];
+    // }
+    // #else
+    // scf::result<char&, scf::strerr_t> at(size_t pos) noexcept {
+    //     if (pos >= len) return scf::result<char&, scf::strerr_t>::err(scf::strerr);
+    //     return scf::result<char&, scf::strerr_t>::ok(buffer_[pos]);
+    // }
+
+    // scf::result<const char&, scf::strerr_t> at(size_t pos) const noexcept {
+    //     if (pos >= len) return scf::result<char&, scf::strerr_t>::err(scf::strerr);
+    //     return scf::result<const char&, scf::strerr_t>::ok(buffer_[pos]);
+    // }
+    // #endif
     char& front() { return buffer_[0]; }
     const char& front() const { return buffer_[0]; }
     char& back() { return buffer_[len - 1]; }
@@ -176,12 +298,23 @@ public:
     size_t capacity() const { return N - 1; }
     bool empty() const { return len == 0; }
 
+    #ifndef SCF_STR_DONT_THROW
     // Set length (caller must ensure buffer is null-terminated and valid)
     void set_length(size_t new_len) {
         if (new_len > N) throw scf::length_error("[SCF_length_error] fxdstr::set_length - length exceeds capacity");
         len = new_len;
         buffer_[len] = '\0';
     }
+    #else
+    void set_length(size_t new_len) {
+        if (new_len > N) {
+            len = N;
+            buffer_[len] = '\0';
+        }
+        len = new_len;
+        buffer_[len] = '\0';
+    }
+    #endif
 
     // Direct access to length for low-level operations (use with care!)
     size_t& length_ref() { return len; }
@@ -189,6 +322,7 @@ public:
     // --- Modifiers ---
     void clear() { buffer_[0] = '\0'; len = 0; }
 
+    #ifndef SCF_STR_DONT_THROW
     fxdstr& append(const char* str, size_t count) {
         if (len + count > N) throw scf::length_error("[SCF_length_error] String too long");
         scf::strncpy(buffer_ + len, str, count);
@@ -221,6 +355,69 @@ public:
     fxdstr& operator+=(const char* str) { return append(str); }
     fxdstr& operator+=(char c) { push_back(c); return *this; }
 
+    #else
+
+    /**
+     * @brief Append a string to the current fxdstr.
+     * @param str The string to append.
+     * @param count The number of characters to append from str. If 0, the entire string is appended.
+     * @param fill_rest_if_bigger If true, fills the remaining space with str if it exceeds capacity.
+     */
+    bool append(const char* str, size_t count = npos, bool fill_rest_if_bigger = false) noexcept {
+        if (!str) return false;
+        if (count == npos) count = scf::strlen(str);
+        
+        const size_t remaining_len = N - len;
+
+        if (count <= remaining_len) {
+            scf::memcpy(buffer_ + len, str, count);
+            len += count;
+            buffer_[len] = '\0';
+            return true;
+
+        } else if (count > remaining_len && fill_rest_if_bigger) {
+            scf::memcpy(buffer_ + len, str, remaining_len);
+            len = N;
+            buffer_[len] = '\0';
+        }
+        return false;
+    }
+
+    /**
+     * @brief Append a character to the current fxdstr.
+     * @param n The number of times to append the character.
+     * @param c The character to append.
+     * @param fill_rest_if_bigger If true, fills the remaining space with c if it exceeds capacity.
+     */
+    bool append(size_t n, const char c, bool fill_rest_if_bigger = false) noexcept {
+        if (n == 0) return false;
+
+        const size_t remaining_len = N - len;
+
+        if (n > remaining_len && fill_rest_if_bigger) {
+            scf::fill_n(buffer_ + len, remaining_len, c);
+            len = N;
+            buffer_[len] = '\0';
+            return false;
+        }
+
+        if (n > remaining_len) {
+            return false;
+        }
+
+        scf::fill_n(buffer_ + len, n, c);
+        len = n;
+        buffer_[len] = '\0';
+        return true;
+    }
+    
+    bool append(const fxdstr& other, bool fill_rest_if_bigger = false) noexcept {
+        return append(other.data(), other.size(), fill_rest_if_bigger);
+    }
+
+    #endif
+
+    #ifndef SCF_STR_DONT_THROW
     void push_back(char c) {
         if (len + 1 > N) throw scf::length_error("[SCF_length_error] String too long");
         buffer_[len++] = c;
@@ -231,8 +428,25 @@ public:
         --len;
         buffer_[len] = '\0';
     }
+    #else
+    bool push_back(char c) {
+        if (len + 1 > N) return false;
+        buffer_[len++] = c;
+        buffer_[len] = '\0';
+        return true;
+    }
+    bool pop_back() {
+        if (len == 0) return false;
+        --len;
+        buffer_[len] = '\0';
+        return true;
+    }
+
+    #endif
 
     // --- Modifiers (erase, replace) ---
+
+    #ifndef SCF_STR_DONT_THROW
     fxdstr& erase(size_t pos = 0, size_t count = npos) {
         if (pos > len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::erase");
         if (count == npos) {
@@ -274,6 +488,50 @@ public:
     fxdstr& replace(size_t pos, size_t count, const fxdstr& str) {
         return replace(pos, count, str.c_str());
     }
+    #else
+    bool erase(size_t pos = 0, size_t count = npos) noexcept {
+        if (pos > len) return false;
+        if (count == npos) {
+            len = pos;
+            buffer_[len] = '\0';
+            return true;
+        }
+        size_t erase_count = scf::min(count, len - pos);
+        scf::memmove(buffer_ + pos, buffer_ + pos + erase_count, len - pos - erase_count);
+
+        len -= erase_count;
+        buffer_[len] = '\0';
+        return true;
+    }
+
+    bool replace(const char* str, size_t pos = 0, size_t count = npos, size_t str_count = npos) noexcept {
+        if (pos > len) return false;
+
+        if (str_count == npos) str_count = scf::strlen(str);
+
+        size_t replace_count = scf::min(count, len - pos);
+        size_t tail_count = len - (pos + replace_count);
+        size_t new_len = len - replace_count + str_count;
+        if (new_len > N) return false;
+
+        // making room for tail part
+        scf::memmove(buffer_ + pos + str_count, buffer_ + pos + replace_count, tail_count);
+        
+        // insertation of the str
+        scf::memcpy(buffer_ + pos, str, str_count);
+        
+        buffer_[new_len] = '\0';
+        len = new_len;
+
+        return true;
+    }
+
+    bool replace(const fxdstr& str, size_t pos = 0, size_t count = npos, size_t str_count = npos) noexcept {
+        if (str_count == npos) str_count = str.length();
+        return replace(pos, count, str.data(), str_count);
+    }
+
+    #endif
 
     // (modifier) actual size
 
@@ -353,6 +611,7 @@ public:
     }
 
     // --- Substring ---
+    #ifndef SCF_STR_DONT_THROW
     fxdstr substr(size_t pos = 0, size_t count = npos) const {
         if (pos > len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::substr");
         count = scf::min(count, len - pos);
@@ -362,7 +621,20 @@ public:
         result.len = count;
         return result;
     }
+    #else
+    fxdstr substr(size_t pos = 0, size_t count = npos) const noexcept {
+        fxdstr res(NULL);
+        if (pos > len) return res;
+        count = scf::min(count, len - pos);
+        scf::copy(buffer_ + pos, buffer_ + pos + count, res.buffer_);
+        res.buffer_[count] = '\0';
+        res.len = count;
+        return res;
+    }
 
+    #endif
+    
+    #ifndef SCF_STR_DONT_THROW
     // Templated substr for smart-sizing (returns appropriate fxdstr<M>)
     template<size_t M>
     fxdstr<M> substr_sized(size_t pos = 0, size_t count = npos) const {
@@ -375,6 +647,20 @@ public:
         result.len = count;
         return result;
     }
+    #else
+    // Templated substr for smart-sizing (returns appropriate fxdstr<M>)
+    template<size_t M>
+    fxdstr<M> substr_sized(size_t pos = 0, size_t count = npos) const noexcept {
+        fxdstr<M> res;
+        if (pos > len) return { res.buffer_ = NULL, res.len = 0};
+        count = scf::min(count, len - pos);
+        if (count > M) return { res.buffer_ = NULL, res.len = 0};
+        scf::copy(buffer_ + pos, buffer_ + pos + count, res.buffer_);
+        res.buffer_[count] = '\0';
+        res.len = count;
+        return res;
+    }
+    #endif
 
     // --- Search ---
 
@@ -743,29 +1029,42 @@ namespace scf {
         return std::string(scf_str.c_str(), scf_str.size());
     }
     #endif
+
+    // template<size_t N>
+    // str_view::operator fxdstr<N>() const {
+    //     return fxdstr<N>(data_, size_);
+    // }
+
+    // compiler warnings for 32-bit systems
+
+    #if defined(__x86__)
+
+    // template<>
+    // struct [[deprecated("fxdstr<1024> is discouraged on 32-bit systems due to stack limits")]]
+    // fxdstr<1024>;
+
+    template<>
+    struct [[deprecated("fxdstr<2048> is not supported on 32-bit systems")]]
+    fxdstr<2048>;
+
+    // template<>
+    // struct [[deprecated("fxdstr<4096> is not supported on 32-bit systems")]]
+    // fxdstr<4096>;
+    using str1024 [[deprecated("fxdstr<1024> is dicouraged on 32-bit systems due to stack limites")]] = fxdstr<1024>;
+
+    #endif
+
+    template<size_t N>
+    inline size_t strllen(scf::str<N>& s__) {
+        return s__.size();
+    }
+
+    // template<size_t N>
+    // inline str<N>& str_buff_cpy(scf::str<N>& dest, const char* src, size_t n) {
+    //     if (n > N) {
+
+    //     }
+    // }
 }
 
 
-// template<size_t N>
-// str_view::operator fxdstr<N>() const {
-//     return fxdstr<N>(data_, size_);
-// }
-
-// compiler warnings for 32-bit systems
-
-#if defined(__x86__)
-
-// template<>
-// struct [[deprecated("fxdstr<1024> is discouraged on 32-bit systems due to stack limits")]]
-// fxdstr<1024>;
-
-// template<>
-// struct [[deprecated("fxdstr<2048> is not supported on 32-bit systems")]]
-// fxdstr<2048>;
-
-// template<>
-// struct [[deprecated("fxdstr<4096> is not supported on 32-bit systems")]]
-// fxdstr<4096>;
-using str1024 [[deprecated("fxdstr<1024> is dicouraged on 32-bit systems due to stack limites")]] = fxdstr<1024>;
-
-#endif

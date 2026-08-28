@@ -313,7 +313,7 @@ const scf::str<10> confirmationKeyGenerator() {
     scf::str<10> generated_key;
 
     for (int i = 0; i < 10; i++) {
-        generated_key += chars_for_key[dist(gen)];
+        generated_key.append(chars_for_key[dist(gen)], true);
     }
 
     return generated_key;

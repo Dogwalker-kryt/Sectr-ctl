@@ -2,6 +2,7 @@
 #pragma once
 #include "scf_cutils.hpp"
 #include "scf_exception.hpp"
+#include "config.hpp"
 
 template<size_t N>
 class fxdstr;
@@ -35,10 +36,6 @@ public:
 
     // Element access
     constexpr const char& operator[](size_t pos) const { return data_[pos]; }
-    constexpr const char& at(size_t pos) const {
-        if (pos >= size_) throw length_error("[SCF_length_error] str_view::at: out of range");
-        return data_[pos];
-    }
 
     // Comparison
     constexpr bool operator==(str_view other) const noexcept {
@@ -57,7 +54,9 @@ public:
 
     // Substring
     constexpr str_view substr(size_t pos, size_t count = npos) const {
+        #ifndef SCF_DONT_THROW
         if (pos > size_) throw length_error("[SCF_length_error] str_view::substr: pos out of range");
+        #endif
         count = constexpr_min(count, size_ - pos);
         return str_view(data_ + pos, count);
     }
