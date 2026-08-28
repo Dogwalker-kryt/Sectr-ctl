@@ -14,7 +14,7 @@ constexpr size_t npos = static_cast<size_t>(-1);
  * @returns npos [ (size_t)18446744073709551615UL ] if fails
  * @return self explanatory
  */
-inline size_t strlen(const char* str) {
+inline size_t strlen(const char* str) noexcept {
     if (!str) return npos;
     const char *s = str;
     while (*s) s++;
@@ -26,7 +26,7 @@ inline size_t strlen(const char* str) {
  * @returns npos [ (size_t)18446744073709551615UL ] if fails
  * @return self explanatory
  */
-inline size_t strnlen(const char *str, size_t max_n) {
+inline size_t strnlen(const char *str, size_t max_n) noexcept {
     if (!str) return npos;
     size_t len = 0;
     while (len < max_n && str[len] != '\0') ++len;
@@ -35,10 +35,38 @@ inline size_t strnlen(const char *str, size_t max_n) {
 
 
 // --- String copy n ---
+
+/**
+ * @brief Copy up to n characters from src to dest, no null-termination.
+ * @param dest Must have at least n bytes.
+ * @param src Must be valid.
+ * @param n Number of characters to copy.
+ * @return dest.
+ * @warning Does NOT null-terminate. UB if dest or src is null.
+ */
 inline char* strncpy(char* dest, const char* src, size_t n) {
     size_t i{};
 
     while (i < n && src[i] != '\0') {
+        dest[i] = src[i];
+        ++i;
+    }
+
+    return dest;
+}
+
+/**
+ * @brief Copy up to n-1 characters from src to dest, always null-terminates.
+ * @param dest Must have at least n bytes.
+ * @param src Must be valid.
+ * @param n Maximum number of characters to copy (including null terminator).
+ * @return dest.
+ * @warning UB if dest or src is null.
+ */
+inline char* strncpy_nt(char* dest, const char* src, size_t n) {
+    size_t i{};
+
+    while (i < n - 1 && src[i] != '\0') {
         dest[i] = src[i];
         ++i;
     }
@@ -48,25 +76,42 @@ inline char* strncpy(char* dest, const char* src, size_t n) {
     return dest;
 }
 
-inline char* strlcpy(char* dest, const char* src) {
-    const size_t src_len = strlen(src);
-    const size_t dest_len = strlen(dest);
-
-    if (dest_len < src_len) {
-        return (char*)src;
-    }
-
-    size_t i{};
-
-    while (i < src_len) {
+/**
+ * @brief Copy src to dest, ensuring null-termination, and return src length.
+ * @param dest Destination buffer.
+ * @param src Source string.
+ * @param dest_len Size of the destination buffer.
+ * @return Length of src.
+ * @warning UB if dest or src is null.
+ */
+inline size_t strlcpy(char* dest, const char* src, size_t dest_len) {
+    if (dest_len == 0) return strlen(src);
+    size_t src_len = strlen(src);
+    size_t len = (src_len < dest_len - 1) ? src_len : dest_len - 1;
+    for (size_t i = 0; i < len; ++i) {
         dest[i] = src[i];
-        ++i;
     }
-
-    dest[src_len] = '\0';
-
-    return dest;
+    dest[len] = '\0';
+    return src_len;
 }
+// inline char* strlcpy(char* dest, const char* src, const size_t dest_len) {
+//     const size_t src_len = strlen(src);
+
+//     if (dest_len < src_len + 1) {
+//         return nullptr;
+//     }
+
+//     size_t i{};
+
+//     while (i < src_len) {
+//         dest[i] = src[i];
+//         ++i;
+//     }
+
+//     dest[src_len] = '\0';
+
+//     return dest;
+// }
 
 // --- Memory Copy ---
 inline void* memcpy(void* dest, const void* src, size_t n) noexcept {
@@ -108,6 +153,24 @@ inline void* memset(void* s, int c, size_t n) {
         p[i] = static_cast<unsigned char>(c);
     }
     return s;
+}
+
+// --- Memory Move ---
+inline void* memmove(void* dest, const void* src, size_t n) {
+    unsigned char* d = static_cast<unsigned char*>(dest);
+    const unsigned char* s = static_cast<const unsigned char*>(src);
+
+    if (d < s) {
+        for (size_t i = 0; i < n; ++i) {
+            d[i] = s[i];
+        }
+    } else if (d > s) {
+        for (size_t i = n; i > 0; --i) {
+            d[i - 1] = s[i - 1];
+        }
+    }
+
+    return dest;
 }
 
 // --- Fill N ---

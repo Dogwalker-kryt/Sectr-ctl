@@ -1,4 +1,4 @@
-#include "../ui/MenuIO.hpp"
+#include "ui/MenuIO.hpp"
 
 static const menu_header_padding_t calcHeaderPadding(scf::str32 header_name_, bool no_color_mode, size_t free_space_) {
 

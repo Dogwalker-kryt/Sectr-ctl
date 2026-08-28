@@ -19,7 +19,7 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.46.74_dev
+// v0.9.46.77
 
 // C++ libraries
 #include <regex>
@@ -47,8 +47,8 @@
 #include "../include/DiskMod.hpp"
 
 // ==== definitions ====
-#define VERSION scf::str32("v0.9.46.74_dev")
-const std::string version_str = VERSION.to_std_str();
+static scf::str16 VERSION("v0.9.46.77");
+static std::string version_str = VERSION.to_std_str();
 
 // ========== Partition Management ========== 
 // should be removed and replaced
@@ -1354,10 +1354,10 @@ private:
     }
 
     static void displayMetadata(const DriveMetadataStruct::DriveMetadata &metadata) {
-        scf::println_flush("-------- Drive Metadata --------");
+        scf::println_flush("┌──────── Drive Metadata ─────────");
 
         auto printAttr = [&](const std::string& attr, const std::string& value) {
-            scf::println("| ", attr, ": ", (value.empty() ? "N/A" : value));
+            scf::println("│ ", attr, ": ", (value.empty() ? "N/A" : value));
         };
 
         printAttr("Name", metadata.name.value_or("[ERROR] No Data available"));
@@ -1663,10 +1663,10 @@ private:
             scf::lnprintln("[Unmounting]");
             scf::println("Enter the name, under wich the target drive is mounted (it maby under '/mnt/' or '/media/<user>/'):");
 
-            scf::flush_stdin();
+            // scf::flush_stdin();
 
-            scf::str512 unmount_name;
-            scf::read(unmount_name);
+            scf::str512 unmount_name = scf::readflsh<scf::str512>();
+            // scf::read(unmount_name);
             if(!fileExists(unmount_name)) {
 
                 ERR(ErrorCode::FileNotFound, "The path you entered doesnt exist: " + unmount_name);
@@ -1675,7 +1675,7 @@ private:
 
             }
 
-            if (unmount_name.find("/mnt/") != std::string::npos && unmount_name.find("/media/") != std::string::npos) {
+            if (unmount_name.find("/mnt/") != scf::str_t::npos && unmount_name.find("/media/") != scf::str_t::npos) {
 
                 ERR(ErrorCode::InvalidDevice, "The path you entered doesnt contain /mnt/ or /media/, what results in an failing unmount operation");
                 LOG_ERROR("The path you entered doesnt contain /mnt/ or /media/, what results in an failing unmount operation");
@@ -1771,11 +1771,11 @@ private:
 
             if (!partition_path.empty() && std::isdigit(partition_path.back())) {
 
-                partition_path += "p1"; 
+                partition_path.append("p1"); 
             
             } else { 
 
-                partition_path += "1";
+                partition_path.append("1");
 
             }
 
@@ -2668,8 +2668,8 @@ class ConfigValueHandeling {
 
 class DriveFingerprinting {
 private:
-    static DriveMetadataStruct::DriveMetadata getMetadata(const scf::str256& drive) {
-        DriveMetadataStruct::DriveMetadata metadata;
+    static scf::result<DriveMetadataStruct::DriveMetadata, ErrorCode> getMetadata(const scf::str256& drive) {
+        DriveMetadataStruct::DriveMetadata metadata{};
         const scf::str1024 cmd = "lsblk -o NAME,SIZE,MODEL,SERIAL,UUID -P -p " + drive; 
 
         const auto res = EXEC_QUIET(cmd);
@@ -2678,7 +2678,7 @@ private:
 
             ERR(ErrorCode::ProcessFailure, "The lsblk failed to deliver data");
             LOG_ERROR("lsblk failed to deliver data");
-            return metadata; 
+            return scf::result<DriveMetadataStruct::DriveMetadata, ErrorCode>::err(ErrorCode::ProcessFailure); 
 
         }
 
@@ -2688,7 +2688,7 @@ private:
         metadata.serial     = extractt("SERIAL", res.output);
         metadata.uuid       = extractt("UUID", res.output);
 
-        return metadata;
+        return scf::result<DriveMetadataStruct::DriveMetadata, ErrorCode>::ok(metadata);
     }
 
     /**
@@ -2706,7 +2706,7 @@ private:
 
             char hex[3];
             snprintf(hex, sizeof(hex), "%02x", hash[i]);
-            fingerprint += hex;
+            fingerprint.append(hex);
 
         }
 
@@ -2727,16 +2727,17 @@ public:
         printFunctionHeader("Fingerprinting");
         const scf::str512 drive_name_fingerprinting = ListDrivesUtil::listDrives(true);
 
-        DriveMetadataStruct::DriveMetadata metadata = getMetadata(drive_name_fingerprinting);
+        scf::result<DriveMetadataStruct::DriveMetadata, ErrorCode> metadata = getMetadata(drive_name_fingerprinting);
+        if (metadata.has_error()) return;
 
         LOG_INFO("Retrieved metadata for drive: " + drive_name_fingerprinting);
 
         const scf::str2048 combined_metadata =
-            *metadata.name + "|" +
-            *metadata.size + "|" +
-            *metadata.model + "|" +
-            *metadata.serial + "|" +
-            *metadata.uuid;
+            *metadata.value().name + "|" +
+            *metadata.value().size + "|" +
+            *metadata.value().model + "|" +
+            *metadata.value().serial + "|" +
+            *metadata.value().uuid;
 
         const scf::str256 fingerprint = fingerprinting(combined_metadata);
 
@@ -2745,7 +2746,7 @@ public:
         scf::println(BOLD, "Fingerprint:", RESET);
         scf::println(fingerprint, "\n");
 
-        DriveMetadataStruct::clearMetadata(metadata);
+        DriveMetadataStruct::clearMetadata(metadata.value());
     }
 };
 
@@ -2816,7 +2817,7 @@ static void notAvilable() {
     scf::println(BOLD, "[Attention] ", RESET ,"This function is not avilable in Stand alone mode (-sa)");
 }
 
-struct arg_pair {
+struct arg_pair_t {
     scf::str<25> long_name_;
     scf::str8 short_name_;
     std::function<void()> operation_;
@@ -2828,18 +2829,6 @@ struct arg_pair {
 int main(int argc, char* argv[], char** envp) {
     Globals::version = VERSION;
     Globals::version_std_str = version_str;
-
-    ConfigValueHandeling::CONFIG_VALUES cfg{};
-
-    if (!Globals::stand_alone) {
-
-        cfg = ConfigValueHandeling::config_init();
-        bool dry_run_mode = cfg.DRY_RUN_MODE;
-    
-        if (dry_run_mode == true) {
-            Globals::g_dry_run = true;
-        }   
-    }
 
     { // cli cmd
 
@@ -2857,17 +2846,18 @@ int main(int argc, char* argv[], char** envp) {
             {"--fingerprint", []()  { term.enableTerminosInput_diableAltTerminal(); DriveFingerprinting::fingerprinting_main(); }}
         };
 
-        const arg_pair arg_pairs[13] {
+        const arg_pair_t arg_pairs[14] {
             {"--no-color", "-nc", [](){Globals::g_no_color = true;}, false}, {"--no-log", "-nl", [](){Globals::g_no_log = true;}, false},
             {"--smart-data", "-sm", [](){Globals::smart_data = true;}, false}, {"--debug", "-d", [](){Globals::g_debug = true;}, false},
             {"--dry-run", "-n", [](){Globals::g_dry_run = true;}, false}, {"--help", "-h", [argv0 = argv[0]](){printUsage(argv0);}, true},
-            {"--config", "-cfg", [&cfg](){ConfigValueHandeling::printConfig(cfg);}, true},
+            {"--config", "-cfg", [](){ ConfigValueHandeling::CONFIG_VALUES cfg = ConfigValueHandeling::config_init(); ConfigValueHandeling::printConfig(cfg);}, true},
             {"--stand-alone", "-sa", [](){Globals::stand_alone = true; Globals::g_no_log = true; Globals::log_path = ""; Globals::config_path = ""; Globals::g_no_color = true;}, false},
             {"--trigger-default", "-td", [](){Globals::force_default_case = true;}, false},
             {"--version", "-v", [](){scf::println("Sectr-ctl version: ", VERSION);}, true},
             {"--logs", "-l", [](){logViewer(true);}, true},
             {"--info", "-i", [](){Info(true);}, true},
-            {"--bypasssc", "-bsc", [](){Globals::bypass_security_code = true;}, false}
+            {"--bypasssc", "-bsc", [](){Globals::bypass_security_code = true;}, false},
+            {"--color", "-c", [](){Globals::g_no_color = false;}, false}
         };
 
         for (int i = 1; i < argc; ++i) {
@@ -2947,6 +2937,18 @@ int main(int argc, char* argv[], char** envp) {
 
     } // cli cmd
 
+    ConfigValueHandeling::CONFIG_VALUES cfg{};
+
+    if (!Globals::stand_alone) {
+
+        cfg = ConfigValueHandeling::config_init();
+        bool dry_run_mode = cfg.DRY_RUN_MODE;
+    
+        if (dry_run_mode == true) {
+            Globals::g_dry_run = true;
+        }   
+    }
+
     // ===== TUI =====
 
     scf::print(NEWTERMINALSCREEN);
@@ -2964,12 +2966,19 @@ int main(int argc, char* argv[], char** envp) {
         menuItems.insert(menuItems.end() - 1, {TESTS, "Tests"});
     }
 
+    std::string logview_not_avilable_c(18, ' ');
+    std::string logview_not_avilable_nc(19, ' ');
+
+    std::string config_not_avilable_c(15, ' ');
+    std::string config_not_avilable_nc(16, ' ');
+
+
     if (Globals::stand_alone) {
         for (auto &item : menuItems) {
-            if (item.first == LOGVIEW) {
-                item.second += BOLD + " (not avilable)                   " + RESET;
+            if (item.first == LOGVIEW) { // 19
+                item.second += BOLD + " (not avilable)" + (!Globals::g_no_color ? logview_not_avilable_c : logview_not_avilable_nc)  + RESET;
             } else if (item.first == CONFIG) {
-                item.second += BOLD + " (not avilable)                " + RESET;
+                item.second += BOLD + " (not avilable)" + (!Globals::g_no_color ? config_not_avilable_c : config_not_avilable_nc) + RESET;
             }
         }
     }

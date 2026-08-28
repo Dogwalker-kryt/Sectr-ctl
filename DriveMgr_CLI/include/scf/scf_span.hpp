@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "scf_exception.hpp"
 #include "scf_type_traits.hpp"
+#include "config.hpp"
 
 namespace scf {
 
@@ -32,15 +33,19 @@ public:
         : ptr_(array.data_ptr()), size_(N) {}
 
     T& operator[](size_t index) {
+        #ifndef SCF_DONT_THROW
         if (index >= size_)
             throw scf::out_of_range("[SCF] span: out of range");
+        #endif
 
         return ptr_[index];
     }
 
     const T& operator[](size_t index) const {
+        #ifndef SCF_DONT_THROW
         if (index >= size_)
             throw scf::out_of_range("[SCF] span: out of range");
+        #endif
 
         return ptr_[index];
     }
