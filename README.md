@@ -35,8 +35,8 @@ but to add a safety and orchestration layer on top of them.
 
 ### CLI/TUI:
 
-- Experimental: `v0.9.46.74`  
-  _(some internal changes again and new overwriting function WIP)_
+- Experimental: `v0.9.46.77`  
+  _(some internal changes again and overwriting function  still in WIP)_
 
 ### GUI (Not getting Updated anymore):
 
