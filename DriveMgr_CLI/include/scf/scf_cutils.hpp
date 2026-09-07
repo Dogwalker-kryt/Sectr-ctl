@@ -10,12 +10,12 @@ constexpr size_t npos = static_cast<size_t>(-1);
 // --- String Length ---
 
 /**
- * @brief little bit better strlen
+ * @brief strlen
+ * @warning str has to be garantee no NULL/nullptr
  * @returns npos [ (size_t)18446744073709551615UL ] if fails
  * @return self explanatory
  */
 inline size_t strlen(const char* str) noexcept {
-    if (!str) return npos;
     const char *s = str;
     while (*s) s++;
     return s - str;

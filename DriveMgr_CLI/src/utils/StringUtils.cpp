@@ -62,3 +62,14 @@ std::string StrUtils::replaceAll(const std::string &_str) {
 
     return new_str;
 }
+
+size_t StrUtils::findstr(const char* buffer, char c, size_t buffer_size, size_t pos) {
+    if (!buffer || pos >= buffer_size) {
+        return scf::str_t::npos;
+    }
+
+    for (size_t i = pos; buffer[i] != '\0'; ++i) {
+        if (buffer[i] == c) return i;
+    }
+    return scf::str_t::npos;
+}

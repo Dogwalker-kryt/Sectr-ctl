@@ -7,6 +7,7 @@
 #include <optional>
 #include "../ui/TermiosIO.h"
 #include "../utils/dmgr_runtime_error.hpp"
+#include "../scf/scf_str.hpp"
 
 namespace StrUtils {
     /**
@@ -46,4 +47,5 @@ namespace StrUtils {
      */
     std::string replaceAll(const std::string &_str);
 
+    size_t findstr(const char* buffer, char c, size_t buffer_size, size_t pos);
 }

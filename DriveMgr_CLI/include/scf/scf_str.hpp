@@ -27,6 +27,7 @@
 #include "scf_conv.hpp"
 #include "result.hpp"
 #include "scf_emtpy.hpp"
+#include <string.h>
 
 #ifdef SCF_ALLOW_STL
 #include <iostream>
@@ -73,11 +74,11 @@ public:
     #ifndef SCF_STR_DONT_THROW
     fxdstr(const char* str) {
         if (str) {
-            const size_t n = scf::strlen(str);
+            const size_t n = strlen(str);
 
             if (n > N) throw scf::length_error("[SCF_length_error] String too long");
 
-            scf::memcpy(buffer_, str, n);
+            memcpy(buffer_, str, n);
             len = n;
         }
     }
@@ -92,7 +93,7 @@ public:
     template<size_t M>
     fxdstr(const fxdstr<M>& other) {
         if (other.size() > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_, other.c_str(), N);
+        memcpy(buffer_, other.c_str(), N);
         len = other.size();
     }
     #else
@@ -100,8 +101,8 @@ public:
     fxdstr(const char* str) noexcept {
         if (!str) return;
 
-        const size_t n = scf::min(scf::strlen(str), N);
-        scf::memcpy(buffer_, str, n);
+        const size_t n = scf::min(strlen(str), N);
+        memcpy(buffer_, str, n);
         
         len = n;
         buffer_[len] = '\0';
@@ -117,9 +118,30 @@ public:
     template<size_t M>
     fxdstr(const fxdstr<M>& other) noexcept {
         len = scf::min(other.size(), N);
-        scf::memcpy(buffer_, other.data(), len);
+        memcpy(buffer_, other.data(), len);
         buffer_[len] = '\0';
     }
+
+    // constexpr fxdstr(const char* str) noexcept {
+    //     len = 0;
+    //     while (len < N && *str) {
+    //         buffer_[len++] = *str++;
+    //     }
+    //     buffer_[len] = '\0';
+    // }
+
+    // constexpr fxdstr(size_t count, char c) noexcept {
+    //     len = scf::min(count, N);
+    //     scf::fill_n(buffer_, len, c);
+    //     buffer_[len] = '\0'; 
+    // }
+
+    // template<size_t T>
+    // constexpr fxdstr(const fxdstr<T>& other) noexcept {
+    //     len = scf::min(other.size(), N);
+    //     memcpy(buffer_, other.data(), len);
+    //     buffer_[len] = '\0';
+    // }
     #endif
 
     #ifdef SCF_ALLOW_STL
@@ -127,7 +149,7 @@ public:
     // Constructor from std::string
     fxdstr(const std::string& str) {
         if (str.size() > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_, str.c_str(), N);
+        memcpy(buffer_, str.c_str(), N);
         buffer_[str.size()] = '\0';
         len = str.size();
     }
@@ -135,7 +157,7 @@ public:
     // Constructor from std::string_view
     fxdstr(std::string_view sv) {
         if (sv.size() > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_, sv.data(), N);
+        memcpy(buffer_, sv.data(), N);
         buffer_[sv.size()] = '\0';
         len = sv.size();
     }
@@ -143,14 +165,14 @@ public:
 
     fxdstr(const std::string& str) noexcept {
         const size_t n = scf::min(str.size(), N);
-        scf::strncpy(buffer_, str.c_str(), n);
+        memcpy(buffer_, str.c_str(), n);
         buffer_[n] = '\0';
         len = n;
     }
 
     fxdstr(std::string_view sv) noexcept {
         const size_t n = scf::min(sv.size(), N);
-        scf::memcpy(buffer_, sv.data(), n);
+        memcpy(buffer_, sv.data(), n);
         buffer_[n] = '\0';
         len = n;
     }
@@ -162,9 +184,9 @@ public:
     #ifndef SCF_STR_DONT_THROW
     fxdstr& operator=(const char* str) {
         if (str) {
-            const size_t n = scf::strlen(str);
+            const size_t n = strlen(str);
             if (n > N) throw scf::length_error("[SCF_length_error] String too long");
-            scf::strncpy(buffer_, str, N);
+            memcpy(buffer_, str, N);
             len = n;
         } else {
             clear();
@@ -174,8 +196,8 @@ public:
     #else
     fxdstr& operator=(const char* str) noexcept {
         if (str) {
-            const size_t n = scf::min(scf::strlen(str), N);
-            scf::strncpy(buffer_, str, n);
+            const size_t n = scf::min(strlen(str), N);
+            memcpy(buffer_, str, n);
             len = n;
         } else {
             clear();
@@ -195,7 +217,7 @@ public:
     #ifndef SCF_STR_DONT_THROW
     fxdstr& operator=(const std::string& str) {
         if (str.size() > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_, str.c_str(), N);
+        memcpy(buffer_, str.c_str(), N);
         buffer_[str.size()] = '\0';
         len = str.size();
         return *this;
@@ -203,7 +225,7 @@ public:
 
     fxdstr& operator=(std::string_view sv) {
         if (sv.size() > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_, sv.data(), N);
+        memcpy(buffer_, sv.data(), N);
         buffer_[sv.size()] = '\0';
         len = sv.size();
         return *this;
@@ -213,7 +235,7 @@ public:
     fxdstr& operator=(const std::string& str) noexcept {
         const size_t str_size = str.size();
         const size_t n = scf::min(str_size, N);
-        scf::strncpy(buffer_, str.c_str(), n);
+        memcpy(buffer_, str.c_str(), n);
         buffer_[str_size] = '\0';
         len = str_size;
         return *this;
@@ -222,7 +244,7 @@ public:
     fxdstr& operator=(const std::string_view& sv) noexcept {
         const size_t sv_size = sv.size();
         const size_t n = scf::min(sv_size, N);
-        scf::strncpy(buffer_, sv.data(), n);
+        memcpy(buffer_, sv.data(), n);
         buffer_[sv_size] = '\0';
         len = sv_size;
         return *this;
@@ -235,7 +257,7 @@ public:
     template<size_t M>
     fxdstr& operator=(const fxdstr<M>& other) {
         if (other.size() > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_, other.c_str(), N);
+        memcpy(buffer_, other.c_str(), N);
         buffer_[other.size()] = '\0';
         len = other.size();
         return *this;
@@ -245,7 +267,7 @@ public:
     fxdstr& operator=(const fxdstr<M>& other) noexcept {
         const size_t osize = other.size();
         const size_t n = scf::min(osize, N);
-        scf::strncpy(buffer_, other.data(), n);
+        memcpy(buffer_, other.data(), n);
         buffer_[osize] = '\0';
         len = osize;
         return *this;
@@ -295,7 +317,7 @@ public:
     size_t size() const { return len; }
     size_t length() const { return len; }
     // size_t max_size() const { return N - 1; }
-    size_t capacity() const { return N - 1; }
+    size_t capacity() const { return N; }
     bool empty() const { return len == 0; }
 
     #ifndef SCF_STR_DONT_THROW
@@ -325,16 +347,16 @@ public:
     #ifndef SCF_STR_DONT_THROW
     fxdstr& append(const char* str, size_t count) {
         if (len + count > N) throw scf::length_error("[SCF_length_error] String too long");
-        scf::strncpy(buffer_ + len, str, count);
+        memcpy(buffer_ + len, str, count);
         len += count;
         buffer_[len] = '\0';
         return *this;
     }
     fxdstr& append(const char* str) {
         if (str) {
-            size_t n = scf::strnlen(str, N);
+            size_t n = strnlen(str, N);
             if (len + n > N) throw scf::length_error("[SCF_length_error] String too long");
-            scf::strncpy(buffer_ + len, str, n);
+            memcpy(buffer_ + len, str, n);
             len += n;
             buffer_[len] = '\0';
         }
@@ -365,18 +387,18 @@ public:
      */
     bool append(const char* str, size_t count = npos, bool fill_rest_if_bigger = false) noexcept {
         if (!str) return false;
-        if (count == npos) count = scf::strlen(str);
+        if (count == npos) count = strlen(str);
         
         const size_t remaining_len = N - len;
 
         if (count <= remaining_len) {
-            scf::memcpy(buffer_ + len, str, count);
+            memcpy(buffer_ + len, str, count);
             len += count;
             buffer_[len] = '\0';
             return true;
 
         } else if (count > remaining_len && fill_rest_if_bigger) {
-            scf::memcpy(buffer_ + len, str, remaining_len);
+            memcpy(buffer_ + len, str, remaining_len);
             len = N;
             buffer_[len] = '\0';
         }
@@ -455,7 +477,7 @@ public:
             return *this;
         }
         size_t erase_count = scf::min(count, len - pos);
-        scf::strncpy(buffer_ + pos, buffer_ + pos + erase_count, len - pos - erase_count);
+        memcpy(buffer_ + pos, buffer_ + pos + erase_count, len - pos - erase_count);
         len -= erase_count;
         buffer_[len] = '\0';
         return *this;
@@ -464,7 +486,7 @@ public:
     fxdstr& replace(size_t pos, size_t count, const char* str) {
         if (pos > len) throw scf::out_of_range("[SCF_out_of_range] fxdstr::replace");
         size_t replace_count = scf::min(count, len - pos);
-        size_t str_len = scf::strlen(str);
+        size_t str_len = strlen(str);
         
         // Calculate resulting length
         size_t new_len = len - replace_count + str_len;
@@ -475,11 +497,11 @@ public:
             scf::copy_backwards(buffer_ + pos + replace_count, buffer_ + len,
                              buffer_ + pos + str_len + (len - pos - replace_count));
         } else if (str_len < replace_count) {
-            scf::strncpy(buffer_ + pos, buffer_ + pos + replace_count, len - pos - replace_count);
+            memcpy(buffer_ + pos, buffer_ + pos + replace_count, len - pos - replace_count);
         }
         
         // Copy in new string
-        scf::strncpy(buffer_ + pos, str, str_len);
+        memcpy(buffer_ + pos, str, str_len);
         len = new_len;
         buffer_[len] = '\0';
         return *this;
@@ -497,7 +519,7 @@ public:
             return true;
         }
         size_t erase_count = scf::min(count, len - pos);
-        scf::memmove(buffer_ + pos, buffer_ + pos + erase_count, len - pos - erase_count);
+        memmove(buffer_ + pos, buffer_ + pos + erase_count, len - pos - erase_count);
 
         len -= erase_count;
         buffer_[len] = '\0';
@@ -507,7 +529,7 @@ public:
     bool replace(const char* str, size_t pos = 0, size_t count = npos, size_t str_count = npos) noexcept {
         if (pos > len) return false;
 
-        if (str_count == npos) str_count = scf::strlen(str);
+        if (str_count == npos) str_count = strlen(str);
 
         size_t replace_count = scf::min(count, len - pos);
         size_t tail_count = len - (pos + replace_count);
@@ -515,10 +537,10 @@ public:
         if (new_len > N) return false;
 
         // making room for tail part
-        scf::memmove(buffer_ + pos + str_count, buffer_ + pos + replace_count, tail_count);
+        memmove(buffer_ + pos + str_count, buffer_ + pos + replace_count, tail_count);
         
         // insertation of the str
-        scf::memcpy(buffer_ + pos, str, str_count);
+        memcpy(buffer_ + pos, str, str_count);
         
         buffer_[new_len] = '\0';
         len = new_len;
@@ -557,52 +579,61 @@ public:
     // }
 
     // --- Comparison ---
-    int compare(const fxdstr& other) const {
-        size_t n = scf::min(len, other.len);
-        int cmp = scf::constexpr_memcmp(buffer_, other.buffer_, n);
-        if (cmp != 0) return cmp;
-        if (len < other.len) return -1;
-        if (len > other.len) return 1;
-        return 0;
-    }
-    int compare(const char* str) const {
-        return compare(fxdstr<N>(str));
+
+    // fxdstr vs fxdstr
+    template <size_t J>
+    bool operator==(const fxdstr<J>& rhs) const noexcept {
+        return len == rhs.length() && memcmp(buffer_, rhs.data(), len) == 0;
     }
 
-    bool operator==(const fxdstr& other) const { return compare(other) == 0; }
-    bool operator!=(const fxdstr& other) const { return compare(other) != 0; }
-    bool operator<(const fxdstr& other) const { return compare(other) < 0; }
-    bool operator>(const fxdstr& other) const { return compare(other) > 0; }
-    bool operator<=(const fxdstr& other) const { return compare(other) <= 0; }
-    bool operator>=(const fxdstr& other) const { return compare(other) >= 0; }
+    template <size_t J>
+    bool operator!=(const fxdstr<J>& rhs) const noexcept {
+        return len != rhs.length() || memcmp(buffer_, rhs.data(), len) != 0;
+    }
 
-    bool operator==(const char* str) const { return compare(str) == 0; }
-    bool operator!=(const char* str) const { return compare(str) != 0; }
+    // fxdstr vs const char*
+    bool operator==(const char* rhs) const noexcept {
+        const size_t rhs_len = strlen(rhs);
+        return len == rhs_len && memcmp(buffer_, rhs, rhs_len) == 0; 
+    }
+    // bool operator!=(const char* rhs) const noexcept {
+    //     const size_t rhs_len = strlen(rhs);
+    //     return len != rhs_len || memcmp(buffer_, rhs, rhs_len) != 0; 
+    // }
+    bool operator!=(const char* rhs) const noexcept {
+        return !(*this == rhs);
+    }
+
+    // Relational operators (unchanged, correct)
+    bool operator<(const fxdstr& other) const { return len < other.len; }
+    bool operator>(const fxdstr& other) const { return len > other.len; }
+    bool operator<=(const fxdstr& other) const { return len <= other.len; }
+    bool operator>=(const fxdstr& other) const { return len >= other.len; }
 
     // --- String predicates (C++20 style) ---
-    bool starts_with(const char* str) const {
-        size_t n = scf::strlen(str);
-        if (n > len) return false;
-        return scf::constexpr_memcmp(buffer_, str, n) == 0;
-    }
-    bool starts_with(char c) const {
-        return len > 0 && buffer_[0] == c;
-    }
-    bool starts_with(const fxdstr& str) const {
-        return starts_with(str.c_str());
-    }
+    // bool starts_with(const char* str) const {
+    //     size_t n = strlen(str);
+    //     if (n > len) return false;
+    //     return scf::constexpr_memcmp(buffer_, str, n) == 0;
+    // }
+    // bool starts_with(char c) const {
+    //     return len > 0 && buffer_[0] == c;
+    // }
+    // bool starts_with(const fxdstr& str) const {
+    //     return starts_with(str.c_str());
+    // }
 
-    bool ends_with(const char* str) const {
-        size_t n = scf::strlen(str);
-        if (n > len) return false;
-        return scf::constexpr_memcmp(buffer_ + len - n, str, n) == 0;
-    }
-    bool ends_with(char c) const {
-        return len > 0 && buffer_[len - 1] == c;
-    }
-    bool ends_with(const fxdstr& str) const {
-        return ends_with(str.c_str());
-    }
+    // bool ends_with(const char* str) const {
+    //     size_t n = strlen(str);
+    //     if (n > len) return false;
+    //     return scf::constexpr_memcmp(buffer_ + len - n, str, n) == 0;
+    // }
+    // bool ends_with(char c) const {
+    //     return len > 0 && buffer_[len - 1] == c;
+    // }
+    // bool ends_with(const fxdstr& str) const {
+    //     return ends_with(str.c_str());
+    // }
 
     // --- Utility ---
     void swap(fxdstr& other) noexcept {
@@ -666,10 +697,10 @@ public:
 
     // find returns npos if not found, otherwise returns the index of the first occurrence
     size_t find(const char* str, size_t pos = 0) const {
-        size_t n = scf::strlen(str);
+        size_t n = strlen(str);
         if (pos > len || n == 0 || n > len) return npos;
         for (size_t i = pos; i <= len - n; ++i) {
-            if (scf::memcmp(buffer_ + i, str, n) == 0) return i;
+            if (memcmp(buffer_ + i, str, n) == 0) return i;
         }
         return npos;
     }
@@ -701,13 +732,13 @@ public:
     #endif
     // same as find but just searches from right to left
     size_t rfind(const char* str, size_t pos = npos) const {
-        size_t n = scf::strlen(str);
+        size_t n = strlen(str);
         if (n == 0 || n > len) return npos;
         if (pos == npos) pos = len;
         if (pos > len) pos = len;
         for (size_t i = pos; i > 0; --i) {
             if (i - 1 >= len - n && i - 1 <= len) continue;
-            if (scf::memcmp(buffer_ + i - n, str, n) == 0) return i - n;
+            if (memcmp(buffer_ + i - n, str, n) == 0) return i - n;
         }
         return npos;
     }
@@ -732,7 +763,7 @@ public:
         if (pos > len) pos = len;
         for (size_t i = pos; i > 0; --i) {
             if (i - 1 >= len - sv.size() && i - 1 <= len) continue;
-            if (scf::memcmp(buffer_ + i - sv.size(), sv.data(), sv.size()) == 0) return i - sv.size();
+            if (memcmp(buffer_ + i - sv.size(), sv.data(), sv.size()) == 0) return i - sv.size();
         }
         return npos;
     }
@@ -945,7 +976,7 @@ namespace scf {
     fxdstr<N> to_scf_str(const char* value) {
         fxdstr<N> out;
         if (value) {
-            size_t n = scf::strlen(value);
+            size_t n = strlen(value);
             if (n > N) {
                 out.append(value, N);
             } else {
@@ -1059,12 +1090,22 @@ namespace scf {
         return s__.size();
     }
 
-    // template<size_t N>
-    // inline str<N>& str_buff_cpy(scf::str<N>& dest, const char* src, size_t n) {
-    //     if (n > N) {
+    template<size_t N>
+    inline str<N> str_buffcpy(scf::str<N>& dest, const char* src, size_t n) {
+        if (n > N) {
+            #ifndef SCF_STR_DONT_THROW
+            throw scf::length_error("[SCF_length_error] (size_t)n param exeeds size of (size_t)N template param");
+            #else
+            n = N;
+            #endif
+        }
 
-    //     }
-    // }
+        char buf[n];
+        memcpy(buf, src, n);
+        dest = buf;
+        dest[n + 1] = '\0';
+        return dest;
+    }
 }
 
 

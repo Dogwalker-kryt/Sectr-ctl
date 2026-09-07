@@ -73,38 +73,18 @@ void Logger::exec(const str2048 &msg, const char* func) {
     log(LogType::EXEC, msg, func);
 }
 
-void Logger::clearLoggs(const std::string &path) {
-    std::ifstream in(path);
-    if (!in) return;
-
-    std::vector<std::string> keep;
-    std::string line;
-
-    while (std::getline(in, line)) {
-
-        if (!line.empty() && line[0] == '/') {
-
-            keep.push_back(line);
-
-        }
-
-    }
-        
-    in.close();
-
-    std::ofstream out(path, std::ofstream::trunc);
-
-    for (const auto& l : keep) {
-
-        out << l << "\n";
-
-    }
+scf::result<scf::nothing_t, ErrorCode> Logger::clearLoggs(const char *path) {
+    scf::result<scf::nothing_t, ErrorCode> res;
+    FILE *log_file = fopen(path, "w");
+    if (log_file == nullptr) res.err(ErrorCode::IOError);
+    fclose(log_file);
+    return res.ok(nothing);
 }
 
 
 // ========= helper/validtion/runtime error =========
 // idk if its used so for now no fxdstr
-str1024 filePathHandler(const str<986> &file_path) {
+const str1024 filePathHandler(const str<986> &file_path) {
     const char* sudo_user = getenv("SUDO_USER");
     const char* user_env = getenv("USER");
     const char* username = sudo_user ? sudo_user : user_env;
@@ -296,7 +276,7 @@ namespace InputValidation {
 // ==================== Side/Helper Functions ====================
 
 const scf::str<10> confirmationKeyGenerator() {
-    constexpr scf::array<char, 62> chars_for_key = {
+    constexpr char chars_for_key[62] = {
         'a','b','c','d','e','f','g','h','i','j',
         'k','l','m','n','o','p','q','r','s','t',
         'u','v','w','x','y','z',
@@ -308,12 +288,12 @@ const scf::str<10> confirmationKeyGenerator() {
 
     static thread_local std::mt19937 gen(std::random_device{}());
 
-    std::uniform_int_distribution<> dist(0, chars_for_key.size() - 1);
+    std::uniform_int_distribution<> dist(0, 62 - 1);
 
     scf::str<10> generated_key;
 
     for (int i = 0; i < 10; i++) {
-        generated_key.append(chars_for_key[dist(gen)], true);
+        generated_key += chars_for_key[dist(gen)];
     }
 
     return generated_key;

@@ -48,7 +48,6 @@
 
 #define RANDOM_NUMBER 569876;
 
-using namespace scf;
 
 // ==================== Color ====================
 namespace Color {
@@ -172,7 +171,7 @@ public:
      */ 
     static void exec(const str2048 &msg, const char* func);
 
-    static void clearLoggs(const std::string &path);
+    static scf::result<scf::nothing_t, ErrorCode> clearLoggs(const char *path);
 };
 
 /**
@@ -213,35 +212,19 @@ public:
 
 
 // ============== DriveMetadata Struct Architecture ==============
-class DriveMetadataStruct {
-public:    
-    struct DriveMetadata {
-        scf::optional<str512> name;
-        scf::optional<str256> size;
-        scf::optional<str128> model;
-        scf::optional<str128> serial;
-        scf::optional<str32> type;
-        scf::optional<str2048> mountpoint;
-        scf::optional<str64> vendor;
-        scf::optional<str32> fstype;
-        scf::optional<str128> uuid;
-    };
 
-    /**
-     * @brief Clears all metadata fields of a DriveMetadata struct by resetting the optional values to std::nullopt.
-     */
-    static void clearMetadata(DriveMetadata& metadata) {
-        metadata.name = scf::nullopt;
-        metadata.size = scf::nullopt;
-        metadata.model = scf::nullopt;
-        metadata.serial = scf::nullopt;
-        metadata.type = scf::nullopt;
-        metadata.mountpoint = scf::nullopt;
-        metadata.vendor = scf::nullopt;
-        metadata.fstype = scf::nullopt;
-        metadata.uuid = scf::nullopt;
-    }
+struct DriveMetadata {
+    scf::optional<str64> name;
+    scf::optional<str64> size;
+    scf::optional<str128> model;
+    scf::optional<str128> serial;
+    scf::optional<str32> type;
+    scf::optional<str1024> mountpoint;
+    scf::optional<str32> vendor;
+    scf::optional<str32> fstype;
+    scf::optional<str64> uuid;
 };
+
 
 
 // ==================== Signatures for Recovery ====================
@@ -361,7 +344,7 @@ namespace InputValidation {
  * @param file_path The relative file path to be handled in home dir (e.g., "/.config/myapp/config.dat").
  * @returns the ready to use file path with
  */
-str1024 filePathHandler(const str<986> &file_path);
+const str1024 filePathHandler(const str<986> &file_path);
 
 /**
  * @brief Generates a random 10-character confirmation key consisting of uppercase letters, lowercase letters, and digits.

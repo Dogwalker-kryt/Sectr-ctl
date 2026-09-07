@@ -29,6 +29,7 @@
 
 #ifdef SCF_ALLOW_STL
     #include <string>
+    #include <iostream>
 #endif
 
 #if defined(__unix__) || defined(__APPLE__) || defined(__linux__)
