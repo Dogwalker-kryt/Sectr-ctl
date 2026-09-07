@@ -7,7 +7,6 @@ namespace scf {
 
     inline constexpr ok_t unit{};
 
-
     struct nothing_t {
         explicit constexpr nothing_t() = default;
     };
