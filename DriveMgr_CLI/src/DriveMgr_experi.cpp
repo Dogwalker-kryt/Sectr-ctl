@@ -19,7 +19,7 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.59.96_dev
+// v0.9.59.96
 
 // C++ libraries
 #include <regex>
@@ -48,7 +48,7 @@
 #include "../include/DiskMod.hpp"
 
 // ==== definitions ====
-static scf::str16 VERSION("v0.9.59.85_dev");
+static scf::str16 VERSION("v0.9.59.96");
 static std::string version_str = VERSION.to_std_str();
 
 // ========== Partition Management ========== 
