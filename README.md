@@ -123,6 +123,10 @@ Every command has a normal name and a shortend abstract version
 | --logs, -l 				| Show log file content |
 | --select [device], -sd [device] | Pre selects the drive you entered, skiping the drive selection in the current session |
 | --config-src [path], -cfg-src [path] | With this you can load the program with another config file in the current session |
+| --stand-alone, -sa		| Disables logging and config, for running the program without full instalation |
+| --config, -cfg			| prints config values |
+| --smart-data, -sm 		| enables smart data for drive health and metadata function |
+| --color, -c 				| enables colors, for when you want to use the program with color in -sa for example
 | --operation-name 			| With this you can directly jump to functions/operation wihtout using the menu |
 
 ---
@@ -144,8 +148,8 @@ _The Requirements are only for when you manualy build the Application from scrat
 ### Clone the Repository
 
 ```sh
-git clone https://github.com/Dogwalker-kryt/Drive-Manager-Linux
-cd Drive-Manager-Linux
+git clone https://github.com/Dogwalker-kryt/Sectr-ct
+cd Sectr-ctl
 ```
 
 ### Step 1: Setup the Application envroment
