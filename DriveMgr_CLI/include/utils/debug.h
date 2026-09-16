@@ -26,9 +26,9 @@
 //extern bool g_no_color;
 
 namespace Color {
-    inline std::string reset_err()   { return "\033[0m"; }
-    inline std::string red_err()     { return Globals::g_no_color ? "" : "\033[31m"; }
-    inline std::string bold_err()    { return "\033[1m"; }
+    inline const char *reset_err()   { return "\033[0m"; }
+    inline const char *red_err()     { return Globals::g_no_color ? "" : "\033[31m"; }
+    inline const char *bold_err()    { return "\033[1m"; }
 }
 
 enum class ErrorCode {
@@ -45,11 +45,12 @@ enum class ErrorCode {
     DataUnavailable,
     NoInput,
     FailedInput,
+    AllocationFault,
     Unknown, 
     Undefined
 };
 
-inline const char* errorMessage(ErrorCode code) {
+inline const char *errorMessage(ErrorCode &code) {
     switch (code) {
         case ErrorCode::PermissionDenied: return "Permission denied";
         case ErrorCode::DeviceNotFound: return "Device not found";
@@ -64,11 +65,12 @@ inline const char* errorMessage(ErrorCode code) {
         case ErrorCode::DataUnavailable: return "Data is unavailable";
         case ErrorCode::NoInput: return "Input was empty";
         case ErrorCode::FailedInput: return "Input failed";
+        case ErrorCode::AllocationFault: return "Allocation failed";
         default: return "Unknown Error";
     }
 }
 
-inline int printError(ErrorCode code, const scf::str2048& extra_msg, const char* file, int line, const char* func) {
+inline int printError(ErrorCode code, const scf::str2048 &extra_msg, const char *file, int line, const char *func) {
     scf::println_cerr( Color::red_err() 
               , Color::bold_err()
               , "[ERROR] ", Color::reset_err(), Color::red_err(), errorMessage(code)
@@ -83,15 +85,6 @@ inline int printError(ErrorCode code, const scf::str2048& extra_msg, const char*
  * @param code the error code from the ErrorCode enum
  */
 #define ERR(code, extra_msg) printError(code, extra_msg, __FILE__, __LINE__, __func__)
-
-
-/**
- * @brief debug message for eysier debugging; added in v0.14.96
- * @param message contains the message
- * @param is_active if true then debug message will be printed
- */
-int debug_msg(const std::string& message, bool is_active);
-
 
 
 #endif 

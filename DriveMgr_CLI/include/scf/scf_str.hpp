@@ -72,15 +72,19 @@ public:
     fxdstr& operator=(const fxdstr&) = default;
 
     #ifndef SCF_STR_DONT_THROW
+    /**
+     * @brief Non Throwing constructor, constructing from string literal 
+     * @note string literal should be garanteed not NULL
+     */
     fxdstr(const char* str) {
-        if (str) {
-            const size_t n = strlen(str);
+        // if (!str) return;
 
-            if (n > N) throw scf::length_error("[SCF_length_error] String too long");
+        const size_t n = strlen(str);
+        if (n > N) throw scf::length_error("[SCF_length_error] String too long");
 
-            memcpy(buffer_, str, n);
-            len = n;
-        }
+        memcpy(buffer_, str, n);
+        len = n;
+        buffer_[len] = '\0';
     }
 
     fxdstr(size_t count, char c) {
@@ -98,8 +102,12 @@ public:
     }
     #else
 
+    /**
+     * @brief Non Throwing constructor, constructing from string literal 
+     * @note string literal should be garanteed not NULL
+     */
     fxdstr(const char* str) noexcept {
-        if (!str) return;
+        // if (!str) return;
 
         const size_t n = scf::min(strlen(str), N);
         memcpy(buffer_, str, n);
@@ -384,9 +392,10 @@ public:
      * @param str The string to append.
      * @param count The number of characters to append from str. If 0, the entire string is appended.
      * @param fill_rest_if_bigger If true, fills the remaining space with str if it exceeds capacity.
+     * @note str should be guaranteed not NULL
      */
     bool append(const char* str, size_t count = npos, bool fill_rest_if_bigger = false) noexcept {
-        if (!str) return false;
+        // if (!str) return false;
         if (count == npos) count = strlen(str);
         
         const size_t remaining_len = N - len;
@@ -417,7 +426,7 @@ public:
         const size_t remaining_len = N - len;
 
         if (n > remaining_len && fill_rest_if_bigger) {
-            scf::fill_n(buffer_ + len, remaining_len, c);
+            memset(buffer_ + len, c, remaining_len);
             len = N;
             buffer_[len] = '\0';
             return false;
@@ -427,7 +436,7 @@ public:
             return false;
         }
 
-        scf::fill_n(buffer_ + len, n, c);
+        memset(buffer_ + len, c, n);
         len = n;
         buffer_[len] = '\0';
         return true;
@@ -436,6 +445,10 @@ public:
     bool append(const fxdstr& other, bool fill_rest_if_bigger = false) noexcept {
         return append(other.data(), other.size(), fill_rest_if_bigger);
     }
+
+    fxdstr& operator+=(const fxdstr& other) { return append(other.c_str(), other.size(), true); }
+    fxdstr& operator+=(const char* str) { return append(str); }
+    fxdstr& operator+=(char c) { if ((len + 1) > N) { return *this; } else { push_back(c); } return *this; }
 
     #endif
 
@@ -892,6 +905,31 @@ fxdstr<1 + N> operator+(char lhs, const fxdstr<N>& rhs) {
     result.append(rhs);
     return result;
 }
+
+// template<size_t N>
+// fxdstr<1 + N> operator+(const fxdstr<N>& lhs, const char *rhs) {
+//     fxdstr<1 + N> result;
+//     result.append(lhs);
+//     result.append(rhs);
+//     return result;
+// }
+
+// template<size_t N>
+// fxdstr<1 + N> operator+(const char *lhs, const fxdstr<N>& rhs) {
+//     fxdstr<1 + N> result;
+//     result.append(lhs);
+//     result.append(rhs);
+//     return result;
+// }
+
+// template<size_t N>
+// fxdstr<1 + N> operator+(const fxdstr<N>& lhs, const char *rhs) {
+//     fxdstr<1 + N> result;
+//     result.append(lhs);
+//     result.append(rhs);
+//     return result;
+// }
+
 #ifdef SCF_ALLOW_STL
 // --- Stream Operators ---
 template<size_t N>

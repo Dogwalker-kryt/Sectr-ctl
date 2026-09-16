@@ -2,9 +2,9 @@
 
 
 
-LDMUpdater::Version_int LDMUpdater::parseVersionVals(const str_t &v) {
+LDMUpdater::Version_int LDMUpdater::parseVersionVals(const scf::str_t &v) {
     Version_int ver;
-    str_t ver_str = v;
+    scf::str_t ver_str = v;
 
     if (!ver_str.empty() && (ver_str[0] == 'v' || ver_str[0] == 'V')) {
         ver_str.erase(0, 1);
@@ -41,7 +41,7 @@ int LDMUpdater::comparing_versions(const Version_int &version_local, const Versi
 }
 
 std::string LDMUpdater::getVersionGithub() {
-    scf::str128 cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
+    const scf::str128 cmd = "curl -s https://api.github.com/repos/Dogwalker-kryt/Sectr-ctl/releases/latest";
     auto res = EXEC_QUIET_SUDO(cmd);
     std::string json = res.output;
 
@@ -63,7 +63,7 @@ void LDMUpdater::updaterMain() {
     std::string LOCAL_VERSION = Globals::version_std_str;
     std::string dev_suffix;
 
-    if (LOCAL_VERSION.find("dev") != scf::str_t::npos || LOCAL_VERSION.find("dev") != scf::str_t::npos) {
+    if (LOCAL_VERSION.find("dev") != std::string::npos || LOCAL_VERSION.find("dev") != std::string::npos) {
         dev_suffix = YELLOW + "[INFO]" + RESET + " Local version contains " + BOLD + "'dev'." + RESET + " Local version is a developer/custom/other release build";    
     }
 

@@ -32,14 +32,14 @@ private:
         int major = 0;
         int minor = 0;
         int patch = 0;
-        scf::str8 suffix = NULL;
+        scf::str8 suffix;
     };
 
     /**
      * @brief Parses version string (e.g., "v0.9.17.15") into version components
      * @param v version string from #define VERSION
      */
-    static Version_int parseVersionVals(const str_t &v);
+    static Version_int parseVersionVals(const scf::str_t &v);
 
     /**
      * @brief Compares the local version with the latest released one on github

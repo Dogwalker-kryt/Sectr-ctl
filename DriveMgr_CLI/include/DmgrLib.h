@@ -73,7 +73,7 @@ namespace Color {
 #define BOLD    Color::bold()
 #define INVERSE Color::inverse()
 
-const std::unordered_map<str16, str8> available_colores {
+const std::unordered_map<scf::str16, scf::str8> available_colores {
     {"RED", RED},
     {"GREEN", GREEN},
     {"YELLOW", YELLOW},
@@ -132,46 +132,46 @@ private:
      * Logs to ~/.local/share/DriveMgr/data/log.dat with format: [DD-MM-YYYY HH:MM] event: <operation>
      * Creates log directory if it doesn't exist. Respects SUDO_USER for proper file ownership.
      */
-    static void log(LogType type, const str1024 &operation, const char* func);
+    static void log(LogType type, const scf::str1024 &operation, const char* func);
 public:
 
     /**
      * @brief Logs and Error
      * @param msg the Message to be logged in the log file
      */
-    static void error(const str2048 &msg, const char* func);
+    static void error(const scf::str1024 &msg, const char* func);
 
     /**
      * @brief Logs an Warning
      * @param msg the Message to be logged in the log file
      */
-    static void warning(const str2048 &msg, const char* func);
+    static void warning(const scf::str1024 &msg, const char* func);
 
     /**
      * @brief Logs an  Info
      * @param msg the Message to be logged in the log file
      */
-    static void info(const str2048 &msg, const char* func);
+    static void info(const scf::str1024 &msg, const char* func);
 
     /**
      * @brief Logs an Successs
      * @param msg the Message to be logged in the log file
      */    
-    static void success(const str2048 &msg, const char* func);
+    static void success(const scf::str1024 &msg, const char* func);
 
     /**
      * @brief Logs an dry run
      * @param msg the Message to be logged in the log file
      */ 
-    static void dry_run(const str2048 &msg, const char* func);
+    static void dry_run(const scf::str1024 &msg, const char* func);
 
     /**
      * @brief Logs an exec
      * @param msg the Message to be logged in the log file
      */ 
-    static void exec(const str2048 &msg, const char* func);
+    static void exec(const scf::str1024 &msg, const char* func);
 
-    static scf::result<scf::nothing_t, ErrorCode> clearLoggs(const char *path);
+    static bool clearLoggs(const char *path);
 };
 
 /**
@@ -214,15 +214,15 @@ public:
 // ============== DriveMetadata Struct Architecture ==============
 
 struct DriveMetadata {
-    scf::optional<str64> name;
-    scf::optional<str64> size;
-    scf::optional<str128> model;
-    scf::optional<str128> serial;
-    scf::optional<str32> type;
-    scf::optional<str1024> mountpoint;
-    scf::optional<str32> vendor;
-    scf::optional<str32> fstype;
-    scf::optional<str64> uuid;
+    scf::optional<scf::str64> name;
+    scf::optional<scf::str64> size;
+    scf::optional<scf::str128> model;
+    scf::optional<scf::str128> serial;
+    scf::optional<scf::str32> type;
+    scf::optional<scf::str1024> mountpoint;
+    scf::optional<scf::str32> vendor;
+    scf::optional<scf::str32> fstype;
+    scf::optional<scf::str64> uuid;
 };
 
 
@@ -267,9 +267,9 @@ static std::map<std::string, file_signature> signatures ={
 
 // ========= input validation =========
 template<size_t N>
-str<N> readLine();
+scf::str<N> readLine();
 
-std::string readLine_stdstr();
+char *readLine_stdstr();
 
 namespace InputValidation {
 
@@ -331,9 +331,9 @@ namespace InputValidation {
      * 
      * reads string input. you can trim the input lenght by using its param
      * 
-     * @param string_size if set, will only return the first n chars in the string
+     * @param string_size if set, will only return the first n chars in the string. Cannot be more then 64
      */
-    scf::optional<std::string> getString(const size_t string_size = 0);
+    scf::optional<std::string> getString(const uint8_t string_size = 64);
 }
 
 // ==================== Side/Helper Functions ====================
@@ -344,19 +344,19 @@ namespace InputValidation {
  * @param file_path The relative file path to be handled in home dir (e.g., "/.config/myapp/config.dat").
  * @returns the ready to use file path with
  */
-const str1024 filePathHandler(const str<986> &file_path);
+const scf::str1024 filePathHandler(const scf::str<986> &file_path);
 
 /**
  * @brief Generates a random 10-character confirmation key consisting of uppercase letters, lowercase letters, and digits.
  * @return A randomly generated confirmation key as a string.
  */
-const scf::str<10> confirmationKeyGenerator();
+const char *confirmationKeyGenerator();
 
 /**
  * @brief Prompts the user for a yes/no confirmation with a custom message.
  * @param prompt The message to display to the user when asking for confirmation.
  */
-const bool askForConfirmation(const str1024 &prompt);
+const bool askForConfirmation(const scf::str1024 &prompt);
 
 /**
  * @brief This is the End question that is promted when a function failed/finished
@@ -384,7 +384,7 @@ const bool checkRootMetadata();
  * @param path The file path to check.
  * @return true if the file exists, false otherwise.
  */
-static const bool fileExists(const str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
+static const bool fileExists(const scf::str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
 
 void printFunctionHeader(const char *__s);
 
@@ -393,18 +393,18 @@ void cleanExit();
 /**
  * @brief Lamba that extracts 
  */
-inline auto extractt = [](const str16& key, const auto &res_output) -> str32 {
-    str32 search = key + "=\"";
+inline auto extractt = [](const scf::str16& key, const auto &res_output) -> scf::str32 {
+    scf::str32 search = key + "=\"";
     size_t start = res_output.find(search);
 
-    if (start == str_t::npos) return "N/A";
+    if (start == scf::npos) return "N/A";
             
     start += search.length();
     size_t end = res_output.find("\"", start);
 
-    if (end == str_t::npos) return "N/A";
+    if (end == scf::npos) return "N/A";
             
-    str32 val = res_output.substr(start, end - start);
+    scf::str32 val = res_output.substr(start, end - start);
     return val.empty() ? "N/A" : val;
 };
 
