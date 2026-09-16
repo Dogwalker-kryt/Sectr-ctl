@@ -15,8 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef EXEC_CMD_H
-#define EXEC_CMD_H
+#pragma once
 
 #include "../DmgrLib.h"
 #include "command_exec.h"
@@ -41,15 +40,33 @@ struct CmdExecResult {
 
 class CmdExec {
 public:
-    static inline CmdExecResult run(const std::string& cmd, bool use_sudo = false, ExecMode mode = ExecMode::NORMAL) {
+    static inline CmdExecResult run(const char *cmd, bool use_sudo = false, ExecMode mode = ExecMode::NORMAL) {
         CmdExecResult result{false, "", -1};
 
-        std::string final_cmd = cmd;
-        if (use_sudo) final_cmd = "sudo " + cmd;
+        const size_t cmd_len = std::strlen(cmd);
+        const char sudo_str[5] = { 's', 'u', 'd', 'o', ' '};
+        char *final_cmd;
+        if (use_sudo) {
+            constexpr size_t sudo_len = std::strlen("sudo \0");
+
+            final_cmd = (char *)malloc(cmd_len + sudo_len + 1);
+            if (!final_cmd) {
+                ERR(ErrorCode::AllocationFault, "[CMD_EXEC] buffer allocation for final_cmd failed");
+                LOG_ERROR("[CMD_EXEC] buffer allocation for final_cmd failed");
+                return result;
+            }
+            
+            std::memcpy(final_cmd, "sudo ", sudo_len);
+            std::memcpy(final_cmd + sudo_len, cmd, cmd_len);
+            final_cmd[cmd_len + sudo_len] = '\0';
+
+        } else {
+            final_cmd = strdup(cmd);
+        };
 
         if (Globals::g_dry_run || mode == ExecMode::DRY_RUN) {
 
-            std::cout << YELLOW << "[DRY-RUN] Would execute: " << final_cmd << RESET << "\n";
+            scf::println(YELLOW, "[DRY-RUN] Would execute: ", final_cmd, RESET);
             LOG_DRYRUN(final_cmd);
 
             result.success = true;
@@ -68,7 +85,8 @@ public:
         }
 
         // Execute via low-level runner
-        ExecResult r = run_command(final_cmd.c_str());
+        ExecResult r = run_command(final_cmd);
+        free(final_cmd);
         b_done = true;
         
         // Spinner
@@ -93,31 +111,38 @@ public:
 
         // Logging / console behavior
         if (mode == ExecMode::QUIET) {
-
-            LOG_EXEC(cmd + " -> " + (result.success ? "OK" : "FAILED"));
+            
+            // scf::str1024 log_msg = scf::to_str512(cmd) + scf::to_str8(" -> ") + scf::to_str8(result.success ? "OK" : "FAILED");
+            char log_msg[1024u];
+            snprintf(log_msg, 1024u, "%s -> %s", cmd, result.success ? "OK" : "FAILED");
+            LOG_EXEC(log_msg);
 
         } else {
 
             if (!result.output.empty()) {
-                std::cout << result.output << "\n";
+                scf::println(result.output);
             }
 
         }
         return result;
     }
 
+    static inline CmdExecResult run(const scf::str512 &cmd, bool use_sudo = false, ExecMode mode = ExecMode::NORMAL) {
+        return run(cmd.c_str(), use_sudo, mode);
+    }
+
     // Convenience overloads
     static inline CmdExecResult run_sudo(const std::string& cmd, ExecMode mode = ExecMode::NORMAL) {
-        return run(cmd, true, mode);
+        return run(cmd.c_str(), true, mode);
     }
 
     static inline CmdExecResult run_quiet(const std::string& cmd, bool use_sudo = false) {
-        return run(cmd, use_sudo, ExecMode::QUIET);
+        return run(cmd.c_str(), use_sudo, ExecMode::QUIET);
     }
 
     // Check and throw on failure
     static inline CmdExecResult run_or_throw(const std::string& cmd, bool use_sudo = false) {
-        CmdExecResult res = run(cmd, use_sudo);
+        CmdExecResult res = run(cmd.c_str(), use_sudo);
         if (!res.success) {
 
             std::cout << LEAVETERMINALSCREEN;
@@ -127,12 +152,12 @@ public:
         return res;
     }
 
-    static inline CmdExecResult run_spinner(const str1024 &cmd) {
-        return run(cmd, false, ExecMode::PROGRESS);
+    static inline CmdExecResult run_spinner(const scf::str512 &cmd) {
+        return run(cmd.c_str(), false, ExecMode::PROGRESS);
     }
 
-    static inline CmdExecResult run_sudo_spinner(const str1024 &cmd) {
-        return run(cmd, true, ExecMode::PROGRESS);
+    static inline CmdExecResult run_sudo_spinner(const scf::str512 &cmd) {
+        return run(cmd.c_str(), true, ExecMode::PROGRESS);
     }
 };
 
@@ -204,4 +229,4 @@ public:
  */
 #define EXEC_SUDO_SPINNER(cmd) CmdExec::run_sudo_spinner(cmd)
 
-#endif // EXEC_CMD_H
+

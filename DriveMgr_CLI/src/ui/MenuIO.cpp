@@ -37,7 +37,7 @@ uint32_t MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, s
     scf::println(Globals::g_THEME_COLOR, "├─────────────────────────────────────────────────┤", RESET);
     for (size_t i = 0; i < menuItems.size(); ++i) {
 
-        std::cout << Globals::g_THEME_COLOR << "│ " << RESET;
+        scf::print(Globals::g_THEME_COLOR, "│ ", RESET);
 
         // Build inner content with fixed width
         std::ostringstream inner;
@@ -49,17 +49,17 @@ uint32_t MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, s
         }
 
         // Print right border and newline
-        std::cout << Globals::g_THEME_COLOR << " │\n" << RESET;
+        scf::print(Globals::g_THEME_COLOR, " │\n", RESET);
 
     }
-    std::cout  << Globals::g_THEME_COLOR << "└─────────────────────────────────────────────────┘\n" << RESET;
+    scf::print(Globals::g_THEME_COLOR, "└─────────────────────────────────────────────────┘\n", RESET);
 
-    std::cout << "\033[" << (total + 1) << "A";
+    printf("\033[%dA", (total + 1));
 
     while (true) {
 
         for (int i = 0; i < total; i++) {
-            std::cout << "\r"; 
+            printf("\r"); 
 
             // Build inner content
             std::ostringstream inner;
@@ -72,17 +72,17 @@ uint32_t MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, s
                 innerStr = scf::to_std_str(Globals::g_THEME_COLOR) + innerStr + RESET;
             }
 
-            std::cout << Globals::g_THEME_COLOR << "│ " << RESET;
+            scf::print(Globals::g_THEME_COLOR, "│ ", RESET);
 
-            if (i == selected) std::cout << INVERSE;
-            std::cout << innerStr;
-            if (i == selected) std::cout << RESET;
+            if (i == selected) scf::print(INVERSE);
+            scf::print(innerStr);
+            if (i == selected) scf::print(RESET);
 
-            std::cout << Globals::g_THEME_COLOR << " │" << RESET << "\n";
+            scf::println(Globals::g_THEME_COLOR, " │", RESET);
         }
 
         // Move cursor back up to top of menu
-        std::cout << "\033[" << total << "A";
+        printf("\033[%dA", total);
 
         char c;
         if (read(STDIN_FILENO, &c, 1) <= 0) continue;
@@ -100,7 +100,7 @@ uint32_t MainMenuIO::colorTuiMenu(const std::vector<std::pair<MenuOptionsMain, s
     }
 
     // Move cursor down past menu
-    std::cout << "\033[" << (total + 1) << "B\n";
+    printf("\033[%dB\n", (total + 1));
 
     term.restoreTerminal();
     return selected;
@@ -127,40 +127,40 @@ uint32_t MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain,
 
     for (size_t i = 0; i < menuItems.size(); ++i) {
 
-        std::cout << "│ ";
+        scf::print("│ ");
 
         // Build inner content with fixed width
         std::ostringstream inner;
         inner << std::setw(2) << menuItems[i].first << ". "
             << std::left << std::setw(44) << menuItems[i].second;
 
-        std::cout << inner.str();
+        scf::print(inner.str());
 
-        std::cout << "  │\n";
+        scf::println("  │");
     }
 
-    std::cout << "└─────────────────────────────────────────────────────┘\n";
+    scf::println("└─────────────────────────────────────────────────────┘");
 
     // Move cursor UP to where the first selectable line is
-    std::cout << "\033[" << (total + 1) << "A";
+    printf("\033[%dA", (total + 1));
 
     while (true) {
         // Redraw selector arrows
         for (int i = 0; i < total; i++) {
-            std::cout << "\r"; // go to start of line
+            printf("\r"); // go to start of line
 
-            if (i == selected) std::cout << "│ "<< BOLD << "> ";
-            else std::cout << "│   ";
+            if (i == selected) scf::print("│ ", BOLD, "> ");
+            else scf::print("│   ");
 
             std::ostringstream inner;
             inner << std::setw(2) << menuItems[i].first << ". "
                     << std::left << std::setw(44) << menuItems[i].second;
 
-            std::cout << inner.str() << "  │" << RESET << "\n";
+            scf::println(inner.str(), "  │", RESET);
         }
 
         // Move cursor back up to top of menu
-        std::cout << "\033[" << total << "A";
+        printf("\033[%dA", total);
 
         char c;
         if (read(STDIN_FILENO, &c, 1) <= 0) continue;
@@ -177,7 +177,7 @@ uint32_t MainMenuIO::noColorTuiMenu(const std::vector<std::pair<MenuOptionsMain,
     }
 
     // Move cursor down past menu
-    std::cout << "\033[" << (total + 1) << "B\n";
+    printf("\033[%dB\n", (total + 1));
 
     term.restoreTerminal();
     return selected;
@@ -218,7 +218,7 @@ void GenericMenuIO::printDash(size_t n) {
     scf::print(RESET);
 }
 
-uint32_t GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems) {
+uint32_t GenericMenuIO::noColorTuiMenu(const scf::str32 &title, const std::vector<std::pair<int, std::string>> &menuItems) {
     term.enableRawMode();
 
     int selected = 0;
@@ -229,7 +229,7 @@ uint32_t GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vect
     size_t box_width   = inner_width + 4;
 
     // Title with padding
-    std::string title_pad = " " + title + " ";
+    scf::str<34> title_pad = " " + title + " ";
     size_t title_len = title_pad.length();
 
     size_t dash_total = box_width - title_len;
@@ -251,24 +251,24 @@ uint32_t GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vect
     }
 
     // Bottom border
-    std::cout << Globals::g_THEME_COLOR << "└";
+    scf::print(Globals::g_THEME_COLOR, "└");
     printDash(box_width);
-    std::cout << Globals::g_THEME_COLOR << "┘\n" << RESET;
+    scf::print(Globals::g_THEME_COLOR, "┘\n", RESET);
 
     // Move cursor up to first item
-    std::cout << "\r\033[" << (total + 1) << "A";
+    printf("\r\033[%dA", (total + 1));
 
     // Selection loop
     while (true) {
 
         for (int i = 0; i < total; i++) {
 
-            std::cout << "\r";
+            printf("\r");
             printMenuLine(i == selected, menuItems[i], inner_width);
 
         }
 
-        std::cout << "\033[" << total << "A";
+        printf("\033[%dA", total);
 
         char c;
         if (read(STDIN_FILENO, &c, 1) <= 0) continue;
@@ -291,7 +291,7 @@ uint32_t GenericMenuIO::noColorTuiMenu(const std::string &title, const std::vect
     }
 
     // Move cursor below menu
-    std::cout << "\r\033[" << (total + 1) << "B\n";
+    printf("\r\033[%dB\n", (total + 1));
 
     term.restoreTerminal();
     return menuItems[selected].first;

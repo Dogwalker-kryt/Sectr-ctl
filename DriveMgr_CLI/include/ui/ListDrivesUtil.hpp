@@ -6,6 +6,9 @@
 
 // ========== TUI drive selection/listing ==========
 
+#define LISTDRIVES_INPUT true
+#define LISTDRIVES_NOINPUT false
+
 class ListDrivesUtil {
     private:
         struct Row {
@@ -27,7 +30,7 @@ class ListDrivesUtil {
          * @param drives use the std::vector<std::string> where you stored your fetched drives
          * @param rows use the std::verctor<Row> rows, that is only in this class avilable
          */
-        static str512 tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows);
+        static scf::str256 tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows);
 
         static void printDriveRow(int idx, const Row& r);
         
@@ -38,7 +41,7 @@ class ListDrivesUtil {
          * @param input_mode if 'true' then the TUI selection enables and returns the selected drive when pressed enter
          * @returns selected drive name as string. TUI must be enabled for this to happen
          */
-        static str512 listDrives(bool input_mode);
+        static scf::str256 listDrives(bool input_mode);
 
         /**
          * @brief idk why its here

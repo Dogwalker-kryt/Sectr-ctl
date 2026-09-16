@@ -26,15 +26,15 @@ inline size_t strlen(const char* str) noexcept {
  * @returns npos [ (size_t)18446744073709551615UL ] if fails
  * @return self explanatory
  */
-inline size_t strnlen(const char *str, size_t max_n) noexcept {
-    if (!str) return npos;
-    size_t len = 0;
-    while (len < max_n && str[len] != '\0') ++len;
-    return len;
-}
+// inline size_t strnlen(const char *str, size_t max_n) noexcept {
+//     if (!str) return npos;
+//     size_t len = 0;
+//     while (len < max_n && str[len] != '\0') ++len;
+//     return len;
+// }
 
 
-// --- String copy n ---
+// // --- String copy n ---
 
 /**
  * @brief Copy up to n characters from src to dest, no null-termination.
@@ -44,16 +44,16 @@ inline size_t strnlen(const char *str, size_t max_n) noexcept {
  * @return dest.
  * @warning Does NOT null-terminate. UB if dest or src is null.
  */
-inline char* strncpy(char* dest, const char* src, size_t n) {
-    size_t i{};
+// inline char* strncpy(char* dest, const char* src, size_t n) {
+//     size_t i{};
 
-    while (i < n && src[i] != '\0') {
-        dest[i] = src[i];
-        ++i;
-    }
+//     while (i < n && src[i] != '\0') {
+//         dest[i] = src[i];
+//         ++i;
+//     }
 
-    return dest;
-}
+//     return dest;
+// }
 
 /**
  * @brief Copy up to n-1 characters from src to dest, always null-terminates.
@@ -63,18 +63,18 @@ inline char* strncpy(char* dest, const char* src, size_t n) {
  * @return dest.
  * @warning UB if dest or src is null.
  */
-inline char* strncpy_nt(char* dest, const char* src, size_t n) {
-    size_t i{};
+// inline char* strncpy_nt(char* dest, const char* src, size_t n) {
+//     size_t i{};
 
-    while (i < n - 1 && src[i] != '\0') {
-        dest[i] = src[i];
-        ++i;
-    }
+//     while (i < n - 1 && src[i] != '\0') {
+//         dest[i] = src[i];
+//         ++i;
+//     }
     
-    dest[i] = '\0';
+//     dest[i] = '\0';
 
-    return dest;
-}
+//     return dest;
+// }
 
 /**
  * @brief Copy src to dest, ensuring null-termination, and return src length.
@@ -84,16 +84,16 @@ inline char* strncpy_nt(char* dest, const char* src, size_t n) {
  * @return Length of src.
  * @warning UB if dest or src is null.
  */
-inline size_t strlcpy(char* dest, const char* src, size_t dest_len) {
-    if (dest_len == 0) return strlen(src);
-    size_t src_len = strlen(src);
-    size_t len = (src_len < dest_len - 1) ? src_len : dest_len - 1;
-    for (size_t i = 0; i < len; ++i) {
-        dest[i] = src[i];
-    }
-    dest[len] = '\0';
-    return src_len;
-}
+// inline size_t strlcpy(char* dest, const char* src, size_t dest_len) {
+//     if (dest_len == 0) return strlen(src);
+//     size_t src_len = strlen(src);
+//     size_t len = (src_len < dest_len - 1) ? src_len : dest_len - 1;
+//     for (size_t i = 0; i < len; ++i) {
+//         dest[i] = src[i];
+//     }
+//     dest[len] = '\0';
+//     return src_len;
+// }
 // inline char* strlcpy(char* dest, const char* src, const size_t dest_len) {
 //     const size_t src_len = strlen(src);
 

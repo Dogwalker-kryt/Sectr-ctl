@@ -23,7 +23,7 @@ const char* Logger::logMessage(LogType log_type) {
     }
 }
 
-void Logger::log(LogType type, const str1024 &operation, const char* func) {
+void Logger::log(LogType type, const scf::str1024 &operation, const char* func) {
         if (Globals::g_no_log == false) {
 
             auto now = std::chrono::system_clock::now();
@@ -32,7 +32,7 @@ void Logger::log(LogType type, const str1024 &operation, const char* func) {
 
             std::strftime(timeStr, sizeof(timeStr), "%d-%m-%Y %H:%M", std::localtime(&currentTime));
 
-            str2048 log_msg = "[" + to_str64(timeStr) + "] event: " + to_str16(logMessage(type)) + operation + " (location: " + to_str32(func) + ")";
+            scf::str2048 log_msg = "[" + scf::to_str64(timeStr) + "] event: " + scf::to_str16(logMessage(type)) + operation + " (location: " + scf::to_str32(func) + ")";
 
             std::ofstream log_file(Globals::log_path, std::ios::app);
 
@@ -49,42 +49,44 @@ void Logger::log(LogType type, const str1024 &operation, const char* func) {
         }
     }
 
-void Logger::error(const str2048 &msg, const char* func) {
+void Logger::error(const scf::str1024 &msg, const char* func) {
     log(LogType::ERROR, msg, func);
 }
 
-void Logger::warning(const str2048 &msg, const char* func) {
+void Logger::warning(const scf::str1024 &msg, const char* func) {
     log(LogType::WARNING, msg, func);
 }
 
-void Logger::info(const str2048 &msg, const char* func) {
+void Logger::info(const scf::str1024 &msg, const char* func) {
     log(LogType::INFO, msg, func);
 }
 
-void Logger::success(const str2048 &msg, const char* func) {
+void Logger::success(const scf::str1024 &msg, const char* func) {
     log(LogType::SUCCESS, msg, func);
 }
 
-void Logger::dry_run(const str2048 &msg, const char* func) {
+void Logger::dry_run(const scf::str1024 &msg, const char* func) {
     log(LogType::DRYRUN, msg, func);
 }
 
-void Logger::exec(const str2048 &msg, const char* func) {
+void Logger::exec(const scf::str1024 &msg, const char* func) {
     log(LogType::EXEC, msg, func);
 }
 
-scf::result<scf::nothing_t, ErrorCode> Logger::clearLoggs(const char *path) {
-    scf::result<scf::nothing_t, ErrorCode> res;
+bool Logger::clearLoggs(const char *path) {
     FILE *log_file = fopen(path, "w");
-    if (log_file == nullptr) res.err(ErrorCode::IOError);
+    if (log_file == nullptr) {
+        return false;
+    }
     fclose(log_file);
-    return res.ok(nothing);
+    return true;
 }
 
 
 // ========= helper/validtion/runtime error =========
-// idk if its used so for now no fxdstr
-const str1024 filePathHandler(const str<986> &file_path) {
+
+// file_path string format is always: /path/file.extension
+const scf::str1024 filePathHandler(const scf::str<986> &file_path) {    
     const char* sudo_user = getenv("SUDO_USER");
     const char* user_env = getenv("USER");
     const char* username = sudo_user ? sudo_user : user_env;
@@ -95,16 +97,16 @@ const str1024 filePathHandler(const str<986> &file_path) {
         return "";
     }
 
-    const struct passwd* pw = getpwnam(username);
+    const struct passwd *pw = getpwnam(username);
 
     if (!pw) {
         scf::println_cerr(RED, "[LOG_ERROR] Could not get home directory for user: ", username, RESET);
-        LOG_ERROR("Failed to get home directory for user: " + to_str64(username));
+        LOG_ERROR("Failed to get home directory for user: " + scf::to_str64(username));
         return "";
     }
 
-    str_t homeDir = pw->pw_dir;
-    str1024 path = homeDir + file_path;
+    scf::str_t homeDir = pw->pw_dir;
+    scf::str1024 path = homeDir + file_path;
     
     return path;
 }
@@ -112,8 +114,8 @@ const str1024 filePathHandler(const str<986> &file_path) {
 
 // ========= input validation =========
 template<size_t N>
-str<N> readLine() {
-    str<N> str;
+scf::str<N> readLine() {
+    scf::str<N> str;
 
     if (!scf::read(str, N)) {
        ERR(ErrorCode::FailedInput, "Failed to read input");
@@ -124,16 +126,16 @@ str<N> readLine() {
     return str;
 }
 
-std::string readLine_stdstr() {
-    std::string s;
-    std::cin >> s;
+char *readLine_64() {
+    static char s[64];
+    fgets(s, sizeof(s), stdin);
     return s;
 }
 
 namespace InputValidation {
 
     scf::optional<int> getInt(const std::vector<int> &valid_ints) {
-        const str_t s_input = readLine<128>();
+        const scf::str_t s_input = readLine<128>();
 
         if (s_input.empty()) {
             return scf::nullopt;
@@ -224,7 +226,7 @@ namespace InputValidation {
     }
 
     scf::optional<char> getChar(const std::vector<char> &valid_chars) {
-        const str8 input = readLine<8>();
+        const scf::str8 input = readLine<8>();
 
         const std::string trimmed = StrUtils::trimWhiteSpace(scf::to_std_str(input));
 
@@ -241,8 +243,11 @@ namespace InputValidation {
         return c_input;
     }
 
-    scf::optional<std::string> getString(const size_t string_size) {
-        const std::string s_input = readLine_stdstr();
+    scf::optional<std::string> getString(const uint8_t string_size) {
+        uint8_t str_size = string_size;
+        if (string_size > 64) str_size = 64;
+        
+        const char *s_input = readLine_64();
 
         if (!std::cin.good()) {
 
@@ -275,7 +280,7 @@ namespace InputValidation {
 
 // ==================== Side/Helper Functions ====================
 
-const scf::str<10> confirmationKeyGenerator() {
+const char *confirmationKeyGenerator() {
     constexpr char chars_for_key[62] = {
         'a','b','c','d','e','f','g','h','i','j',
         'k','l','m','n','o','p','q','r','s','t',
@@ -290,16 +295,18 @@ const scf::str<10> confirmationKeyGenerator() {
 
     std::uniform_int_distribution<> dist(0, 62 - 1);
 
-    scf::str<10> generated_key;
+    static char generated_key[10 + 1] = {};
 
     for (int i = 0; i < 10; i++) {
-        generated_key += chars_for_key[dist(gen)];
+        generated_key[i] = chars_for_key[dist(gen)];
     }
+
+    generated_key[10] = '\0';
 
     return generated_key;
 }
 
-const bool askForConfirmation(const str1024 &prompt) {
+const bool askForConfirmation(const scf::str1024 &prompt) {
     scf::println(prompt, "(y/n)");
     auto confirm = InputValidation::getChar({'y', 'n'});
     if (!confirm.has_value()) return false;
@@ -354,8 +361,8 @@ const bool checkRootMetadata() {
 
 void printFunctionHeader(const char* __s) {
     system("clear");
-    flush_stdout();
-    println_flush(BOLD, "[      ", __s, "      ]", RESET);
+    scf::flush_stdout();
+    scf::println_flush(BOLD, "[      ", __s, "      ]", RESET);
 }
 
 void cleanExit() {
@@ -364,5 +371,5 @@ void cleanExit() {
 }
 
 bool devSuffix() {
-    return (Globals::version.rfind("_dev") ? true : false);
+    return (Globals::version.rfind("v") != scf::npos);
 }

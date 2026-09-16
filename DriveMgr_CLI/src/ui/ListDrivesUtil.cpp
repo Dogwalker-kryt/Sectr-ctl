@@ -1,34 +1,34 @@
-#include "../ui/ListDrivesUtil.hpp"
+#include "ui/ListDrivesUtil.hpp"
 
 // ========== TUI drive selection/listing ==========
 
-str512 ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows) {
+scf::str256 ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, std::vector<ListDrivesUtil::Row> &rows) {
     term.enableRawMode();
 
     int selected = 0;
     int total = drives.size();
 
     // Move cursor UP to the first drive row
-    std::cout << "\033[" << total << "A";
+    printf("\033[%dA", total);
 
     while (true) {
-        std::cout << "\r"; // go to start of line
+        printf("\r"); // go to start of line
         for (int i = 0; i < total; i++) {
 
             // Arrow indicator
             if (i == selected) { 
-                if (!Globals::g_no_color) std::cout << Globals::g_SELECTION_COLOR;
-                if (Globals::g_no_color) std::cout << BOLD;
-                std::cout << "> ";
-                if (!Globals::g_no_color) std::cout << RESET;
-                if (Globals::g_no_color) std::cout << RESET;
+                if (!Globals::g_no_color) scf::print(Globals::g_SELECTION_COLOR);
+                if (Globals::g_no_color) scf::print(BOLD);
+                scf::print("> ");
+                if (!Globals::g_no_color) scf::print(RESET);
+                if (Globals::g_no_color) scf::print(RESET);
             } else { 
-                std::cout << "  "; 
+                scf::print("  "); 
             }
 
             // Highlight row
-            if (i == selected && !Globals::g_no_color) std::cout << Globals::g_SELECTION_COLOR;
-            if (i == selected && Globals::g_no_color) std::cout << BOLD;
+            if (i == selected && !Globals::g_no_color) scf::print(Globals::g_SELECTION_COLOR);
+            if (i == selected && Globals::g_no_color) scf::print(BOLD);
 
             std::cout << std::left
                 << std::setw(3)  << i
@@ -39,15 +39,15 @@ str512 ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, 
                 << std::setw(10) << rows[i].fstype
                 << rows[i].status;
 
-            if (i == selected && !Globals::g_no_color) std::cout << RESET;
-            else if (i == selected && Globals::g_no_color) std::cout << RESET;
+            if (i == selected && !Globals::g_no_color) scf::print(RESET);
+            else if (i == selected && Globals::g_no_color) scf::print(RESET);
 
-            std::cout << "\n"; 
+            printf("\n"); 
         }
 
         // Move cursor back up
-        std::cout << "\033[" << total << "A";
-                    
+        printf("\033[%dA", total);   
+        
         // Read key
         char c;
             if (read(STDIN_FILENO, &c, 1) <= 0) continue;
@@ -67,17 +67,17 @@ str512 ListDrivesUtil::tuiForListDrives(const std::vector<std::string> &drives, 
 
     // Move cursor down past the table so next output prints normally
     int tableheight = total + 3;
-    std::cout << "\033[" << tableheight << "B" << std::flush;
-    // std::cout << "\n";
+    printf("\033[%dB", tableheight);
+    scf::flush_stdout();
 
     term.restoreTerminal();
 
-    auto tui_selected_drive = drives[selected];
-    return to_str512(tui_selected_drive);
+    std::string tui_selected_drive = drives[selected];
+    return scf::str256(tui_selected_drive);
 }
 
 
-void ListDrivesUtil::printDriveRow(int idx, const Row& r) {
+void ListDrivesUtil::printDriveRow(int idx, const Row &r) {
     std::cout << std::left
               << std::setw(3)  << idx
               << std::setw(18) << r.device
@@ -89,24 +89,15 @@ void ListDrivesUtil::printDriveRow(int idx, const Row& r) {
 }
 
 void ListDrivesUtil::printDriveHeader() {
-    // if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
     scf::lnprintln_flush("Available Disks");
-
-    // if (!Globals::g_no_color) std::cout << RESET;
-    // std::cout << "\n";
 
     std::cout << std::left << std::setw(5) << "#";
     if (Globals::g_no_color) std::cout << BOLD;
     std::cout << std::setw(16) << "Device";
-
     std::cout << std::setw(10) << "Size";
-
     std::cout << std::setw(10) << "Type";
-
     std::cout << std::setw(15) << "Mountpoint";
-
     std::cout << std::setw(10) << "FSType";
-
     std::cout << "Status" << std::endl;
 
     if (!Globals::g_no_color) std::cout << Globals::g_THEME_COLOR;
@@ -114,7 +105,7 @@ void ListDrivesUtil::printDriveHeader() {
     std::cout << RESET;
 }
 
-str512 ListDrivesUtil::listDrives(bool input_mode) {
+scf::str256 ListDrivesUtil::listDrives(bool input_mode) {
     if (Globals::g_selected_drive_by_flag == true) {
         return Globals::g_selected_drive;
     }

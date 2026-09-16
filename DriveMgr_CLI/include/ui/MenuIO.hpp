@@ -63,5 +63,5 @@ public:
      * @param title the title to display at the top of the menu
      * @param menuItems the list of menu items to display, each with an integer ID and a string label
      */
-    static uint32_t noColorTuiMenu(const std::string &title, const std::vector<std::pair<int, std::string>> &menuItems);
+    static uint32_t noColorTuiMenu(const scf::str32 &title, const std::vector<std::pair<int, std::string>> &menuItems);
 };
