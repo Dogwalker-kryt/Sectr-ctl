@@ -386,6 +386,8 @@ const bool checkRootMetadata();
  */
 static const bool fileExists(const scf::str2048& path) { struct stat buffer; return (stat(path.c_str(), &buffer) == 0); }
 
+static const bool driveExists(const char *drive) { return std::filesystem::exists(drive); }
+
 void printFunctionHeader(const char *__s);
 
 void cleanExit();

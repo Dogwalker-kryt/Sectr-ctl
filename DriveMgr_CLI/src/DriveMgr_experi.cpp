@@ -19,7 +19,7 @@
 // ! Warning this version is the experimental version of the program,
 // This version has the latest and newest functions, but may contain bugs and errors
 // Current version of this code is in the VERSION macro below and in the line bellow
-// v0.9.62.74_dev
+// v0.9.62.85_dev
 
 // C++ libraries
 #include <regex>
@@ -49,7 +49,7 @@
 #include "../include/cmd_exec/exec_cmd.h"
 
 // ==== definitions ====
-static scf::str16 VERSION("v0.9.63.76_dev");
+static scf::str16 VERSION("v0.9.63.85_dev");
 static std::string version_str = VERSION.to_std_str();
 
 // ========== Partition Management ========== 
@@ -1411,6 +1411,77 @@ public:
 
         return;
     }
+
+    static bool overwriter_cli(const scf::str512 &drive_to_op) {
+        scf::print(YELLOW, "[WARNING]", RESET, " Are you sure you want to overwrite all data on ", BOLD, drive_to_op, RESET, "? This action cannot be undone! (y/n): ");
+        
+        const auto confirm = InputValidation::getChar({'y', 'n'});
+        if (!confirm.has_value()) return false;
+
+        if (confirm != 'y') {
+
+            scf::println(BOLD, "[Overwriting aborted]", RESET, " The Overwriting process of ", drive_to_op, " was interupted by user");
+            LOG_INFO("Overwriting process aborted by user for drive: " + drive_to_op);
+            return false;
+
+        }
+
+        scf::println(CYAN, "[Process]", RESET, " Proceeding with overwriting all data on: ", drive_to_op);
+
+        const scf::str_t *disk_mount_point = mount_point_str(drive_to_op);
+        if (disk_mount_point != nullptr) {
+            scf::println(YELLOW, "[WARNING] ", RESET, " The drive ", BOLD, "'", drive_to_op, "'", RESET, " is currently mounted at ", BOLD, *disk_mount_point, RESET, 0x00, "Please umount the drive!");
+            LOG_WARNING(drive_to_op + " is currently mounted at " + *disk_mount_point);
+            return false;
+        } 
+
+        scf::result<int, ErrorCode> fd = drive_fd(drive_to_op);
+        if (fd.has_error()) return false;
+
+        struct stat st{};
+        if (fstat(fd.value(), &st) < 0 || !S_ISBLK(st.st_mode)) {
+            ERR(ErrorCode::IOError, "Failed to get drive size for overwriting: " + drive_to_op);
+            LOG_ERROR("Failed to get drive size for overwriting: " + drive_to_op);
+            close(fd.value());
+            return false;
+        }
+
+        uint64_t drive_size = 0;
+        if (ioctl(fd.value(), BLKGETSIZE64, &drive_size) < 0) {
+            ERR(ErrorCode::IOError, "Failed to get drive size for overwriting: " + drive_to_op);
+            LOG_ERROR("Failed to get drive size for overwriting: " + drive_to_op);
+            close(fd.value());
+            return false;
+        }
+
+        static support_t support = check_support(drive_to_op);
+
+        bool write_success = false;
+        if (support.blksecdiscard) {
+            scf::println(CYAN, "[DEBUG] ", RESET, "using secure discard (BLKSECDISCARD) for ", drive_to_op);
+            write_success = om_perform_secure_discard(fd.value(), drive_size);
+        } else if (support.blkdiscard) {
+            scf::println(CYAN, "[DEBUG] ", RESET, "using discard (BLKDISCARD) for ", drive_to_op);
+            write_success = om_perform_discard(fd.value(), drive_size);
+        } else {
+            scf::println(YELLOW, "[DEBUG] ", RESET, "using fallback zeroing out for ", drive_to_op);
+            write_success = om_perform_zeroout(fd.value(), drive_size);
+        }
+
+        close(fd.value());
+
+        if (write_success) {
+            scf::println(GREEN, "[SUCCESS]", RESET, " Drive ", drive_to_op, " has been successfully overwritten.");
+            LOG_SUCCESS("Drive " + drive_to_op + " has been successfully overwritten.");
+            return true;
+        } 
+
+        scf::println(RED, "[FAILURE]", RESET, " Failed to overwrite drive ", drive_to_op);
+        ERR(ErrorCode::IOError, "Failed to overwrite " + drive_to_op);
+        LOG_ERROR("Failed to overwrite drive " + drive_to_op);
+
+        return false;
+    }
 };
 
 // ========== Drive Metadata Reader ==========
@@ -1431,15 +1502,15 @@ private:
             
         }
 
-        metadata->name       = extractt("NAME", res.output);
-        metadata->size       = extractt("SIZE", res.output);
-        metadata->model      = extractt("MODEL", res.output);
-        metadata->serial     = extractt("SERIAL", res.output);
-        metadata->type       = extractt("TYPE", res.output);
-        metadata->mountpoint = extractt("MOUNTPOINT", res.output);
-        metadata->vendor     = extractt("VENDOR", res.output);
-        metadata->fstype     = extractt("FSTYPE", res.output);
-        metadata->uuid       = extractt("UUID", res.output);
+        metadata->name       = extractt("NAME", res.output).data();
+        metadata->size       = extractt("SIZE", res.output).data();
+        metadata->model      = extractt("MODEL", res.output).data();
+        metadata->serial     = extractt("SERIAL", res.output).data();
+        metadata->type       = extractt("TYPE", res.output).data();
+        metadata->mountpoint = extractt("MOUNTPOINT", res.output).data();
+        metadata->vendor     = extractt("VENDOR", res.output).data();
+        metadata->fstype     = extractt("FSTYPE", res.output).data();
+        metadata->uuid       = extractt("UUID", res.output).data();
 
         return metadata;
     }
@@ -1773,7 +1844,6 @@ private:
             }
 
             scf::println(CYAN, "[Phase 5]:", RESET);
-            scf::println("mkfs.vfat -F32 " + partition_path);
 
             const auto mkfs_res = EXEC_QUIET_SUDO("mkfs.vfat -F32 " + partition_path);
 
@@ -2293,104 +2363,100 @@ public:
 // ========== Clone Drive Utility ==========
 
 class Clone {
-    private:
-        static void CloneDrive(const scf::str512 &source, const scf::str512 &target) {
-            scf::lnprintln_flush("Do you want to clone data from ", source, " to ", target, "? This will overwrite all data on the target drive(n) (y/n): ");
+private:
+    static void CloneDrive(const scf::str512 &source, const scf::str512 &target) {
+        scf::lnprintln_flush("Do you want to clone data from ", source, " to ", target, "? This will overwrite all data on the target drive(n) (y/n): ");
             
-            const scf::optional<char> confirmation = InputValidation::getChar({'y', 'n'});
-            if (!confirmation.has_value()) return;
+        const scf::optional<char> confirmation = InputValidation::getChar({'y', 'n'});
+        if (!confirmation.has_value()) return;
 
-            if (confirmation != 'y') {
+        if (confirmation != 'y') {
 
-                scf::println("[Info] Operation cancelled");
-                LOG_INFO("Operation cancelled");
+            scf::println("[Info] Operation cancelled");
+            LOG_INFO("Operation cancelled");
+            return;
+
+        } else if (confirmation == 'y') {
+
+            const auto res = EXEC_SUDO("dd if=" + source + " of=" + target + " bs=5M status=progress && sync");
+
+            if (!res.success) {
+
+                LOG_ERROR("Failed to clone drive from " + source + " to " + target);
+                ERR(ErrorCode::ProcessFailure, "Failed to clone data from " + source + " to " + target);
                 return;
 
-            } else if (confirmation == 'y') {
+            }
 
-                const auto res = EXEC_SUDO("dd if=" + source + " of=" + target + " bs=5M status=progress && sync");
-
-                if (!res.success) {
-
-                    LOG_ERROR("Failed to clone drive from " + source + " to " + target);
-                    ERR(ErrorCode::ProcessFailure, "Failed to clone data from " + source + " to " + target);
-                    return;
-
-                }
-
-                scf::println(GREEN, "[Success] Drive cloned from ", source, " to ", target, "\n", RESET);
-                LOG_SUCCESS("Drive cloned successfully from " + source + " to " + target);
+            scf::println(GREEN, "[Success] Drive cloned from ", source, " to ", target, "\n", RESET);
+            LOG_SUCCESS("Drive cloned successfully from " + source + " to " + target);
                 
-            }
-
         }
 
-        static const scf::str256 *validateTargetDriveName(const scf::str256 &target_drive) {
-            constexpr const char *valid_paths_contains[3] {
-                "/mnt/", "/dev/", "/media/"
-            };
+    }
 
-            if (target_drive.empty()) {
+    static const scf::str256 *validateTargetDriveName(const scf::str256 &target_drive) {
+        constexpr const char *valid_paths_contains[3] {
+            "/mnt/", "/dev/", "/media/"
+        };
 
-                ERR(ErrorCode::DataUnavailable, "Target drive cannot be empty string");
-                LOG_ERROR("Target drive cannot be empty string");
-                return nullptr;
+        if (target_drive.empty()) {
 
-            }
-
-            for (const auto& path : valid_paths_contains) {
-
-                if (target_drive.find(path) != scf::npos) {
-
-                    const scf::str256 *validated_disk = &target_drive;
-
-                    return validated_disk;
-
-                }
-
-            }
-
-            ERR(ErrorCode::InvalidInput, "Target drive string doesn't contain a valid drive path prefix");
+            ERR(ErrorCode::DataUnavailable, "Target drive cannot be empty string");
+            LOG_ERROR("Target drive cannot be empty string");
             return nullptr;
+
         }
+
+        for (const auto& path : valid_paths_contains) {
+
+            if (target_drive.find(path) != scf::npos) {
+                const scf::str256 *validated_disk = &target_drive;
+                return validated_disk;
+            }
+        }
+
+        ERR(ErrorCode::InvalidInput, "Target drive string doesn't contain a valid drive path prefix");
+        return nullptr;
+    }
 
         
-    public:
-        static void mainClone() {
-            printFunctionHeader("Cloning");
+public:
+    static void mainClone() {
+        printFunctionHeader("Cloning");
 
-            scf::lnprintln("Choose a Source drive to clone the data from it:");
-            const scf::str256 source_drive = ListDrivesUtil::listDrives(true);
+        scf::lnprintln("Choose a Source drive to clone the data from it:");
+        const scf::str256 source_drive = ListDrivesUtil::listDrives(true);
 
-            scf::lnprintln("Enter a Target drive/device to clone the data on to it (dont choose the same drive):");
-            scf::println(YELLOW, "[WARNING]", RESET, " Make sure to choose the mount path of the target", BOLD, " (e.g., /media/target_drive)", RESET);
+        scf::lnprintln("Enter a Target drive/device to clone the data on to it (dont choose the same drive):");
+        scf::println(YELLOW, "[WARNING]", RESET, " Make sure to choose the mount path of the target", BOLD, " (e.g., /media/target_drive)", RESET);
 
-            auto target_drive = InputValidation::getString();
-            if (!target_drive.has_value()) return;
+        auto target_drive = InputValidation::getString();
+        if (!target_drive.has_value()) return;
 
-            const scf::str256 *validated = validateTargetDriveName(*target_drive);
-            if (validated == nullptr) { return; }
+        const scf::str256 *validated = validateTargetDriveName(*target_drive);
+        if (validated == nullptr) { return; }
 
-            const scf::str256 val_target = *validated;
+        const scf::str256 val_target = *validated;
 
-            if (source_drive == val_target) {
+        if (source_drive == val_target) {
 
-                LOG_ERROR("Source and target drives are the same");
-                dmgr_runtime_error("[ERROR] Source and target drives cannot be the same!");
-                return;
+            LOG_ERROR("Source and target drives are the same");
+            dmgr_runtime_error("[ERROR] Source and target drives cannot be the same!");
+            return;
 
-            } else {
+        } else {
 
-                CloneDrive(source_drive, val_target);
-                return;
-            }
+            CloneDrive(source_drive, val_target);
+            return;
         }
+    }
 };
 
 
 // ========== Log Viewer Utility ==========
 
-static void logViewer(bool turn_off_print_f_header = false) {
+inline void logViewer(bool turn_off_print_f_header = false) {
     if (!turn_off_print_f_header) {
         printFunctionHeader("Log viewer");
     }
@@ -2415,9 +2481,7 @@ static void logViewer(bool turn_off_print_f_header = false) {
     size_t first_close = scf::npos;
     size_t tag_start = scf::npos;
     char tag_id;
-
-    // the first ] pos is always 17 because of the defaulted Logging message style
-    #define CLOSING_BRAKET_POS 17
+    #define CLOSING_BRAKET_POS 17     // the first ] pos is always 17 because of the defaulted Logging message style
 
     while (fgets(line.data(), line_size, file)) {
         line.set_length(strnlen(line.data(), line_size));
@@ -2429,7 +2493,7 @@ static void logViewer(bool turn_off_print_f_header = false) {
         if (first_close == scf::npos) { 
             ERR(ErrorCode::Undefined, "first ']' was not found in 'line'; returned npos"); 
             LOG_ERROR("first ']' was not found in 'line'; returned npos; logViewer()");
-            fclose(file);
+            goto LOG_FCLOSE;
             return;
         }
 
@@ -2438,7 +2502,7 @@ static void logViewer(bool turn_off_print_f_header = false) {
         if (tag_start == scf::npos) {
             ERR(ErrorCode::Undefined, "second '[' was not found in 'line'; returned npos");
             LOG_ERROR("second '[' was not found in 'line'; returned npos; logViewer()");
-            fclose(file);
+            goto LOG_FCLOSE;
             return;
         }
 
@@ -2489,6 +2553,7 @@ static void logViewer(bool turn_off_print_f_header = false) {
         scf::println(BOLD, "[INFO] ", RESET, "Log file is emtpy");
     }
 
+LOG_FCLOSE:
     fclose(file);
 
     return;
@@ -2540,8 +2605,8 @@ class ConfigValueHandeling {
 
             if (!std::filesystem::exists(Globals::lume_path)) {
 
-                ERR(ErrorCode::FileNotFound, "Lume editor not found at: " + scf::to_str512(Globals::lume_path));
-                LOG_ERROR("Lume editor missing at: " + scf::to_str512(Globals::lume_path));
+                ERR(ErrorCode::FileNotFound, "Lume editor not found at: " + Globals::lume_path.string());
+                LOG_ERROR("Lume editor missing at: " + Globals::lume_path.string());
                 return;
 
             }
@@ -2670,7 +2735,7 @@ class ConfigValueHandeling {
 
 class DriveFingerprinting {
 private:
-    static DriveMetadata *getMetadata(DriveMetadata *metadata, const scf::str256& drive) {
+    static DriveMetadata *getMetadata(DriveMetadata *metadata, const scf::str256 &drive) {
         const scf::str1024 cmd = "lsblk -o NAME,SIZE,MODEL,SERIAL,UUID -P -p " + drive; 
 
         const auto res = EXEC_QUIET(cmd);
@@ -2683,11 +2748,11 @@ private:
 
         }
 
-        metadata->name       = extractt("NAME", res.output);
-        metadata->size       = extractt("SIZE", res.output);
-        metadata->model      = extractt("MODEL", res.output);
-        metadata->serial     = extractt("SERIAL", res.output);
-        metadata->uuid       = extractt("UUID", res.output);
+        metadata->name       = extractt("NAME", res.output).data();
+        metadata->size       = extractt("SIZE", res.output).data();
+        metadata->model      = extractt("MODEL", res.output).data();
+        metadata->serial     = extractt("SERIAL", res.output).data();
+        metadata->uuid       = extractt("UUID", res.output).data();
 
         return metadata;
     }
@@ -2699,7 +2764,7 @@ private:
     static scf::str64 fingerprinting(const scf::str2048 &combined_metadata) {
         unsigned char hash[SHA256_DIGEST_LENGTH];
 
-        SHA256(reinterpret_cast<const unsigned char*>(combined_metadata.c_str()), combined_metadata.size(), hash);
+        SHA256(reinterpret_cast<const unsigned char*>(combined_metadata.data()), combined_metadata.size(), hash);
 
         scf::str64 fingerprint;
 
@@ -2750,11 +2815,33 @@ public:
 
         delete metadata;
     }
+
+    static bool fingerprint_cli(const char *device_name) {
+        DriveMetadata metadata_storage;
+        DriveMetadata *metadata = getMetadata(&metadata_storage, device_name);
+        if (metadata == nullptr) return false;
+
+        LOG_INFO("Retrieved metadata for drive: " + scf::str_t(device_name));
+
+        const scf::str2048 combined_metadata =
+            *metadata->name + "|" +
+            *metadata->size + "|" +
+            *metadata->model + "|" +
+            *metadata->serial + "|" +
+            *metadata->uuid;
+
+        const scf::str256 fingerprint = fingerprinting(combined_metadata);
+        if (fingerprint.empty()) return false;
+        LOG_INFO("Generated fingerprint for drive: " + scf::str_t(device_name));
+
+        printf("%s\n", fingerprint.c_str());
+        return true;
+    }
 };
 
 // ========== Main Menu and Utilities ==========
 
-static void Info(bool print_func_header_turn_off = false) {
+inline void Info(bool print_func_header_turn_off = false) {
     if (!print_func_header_turn_off) { 
         printFunctionHeader("Info");
     }
@@ -2771,7 +2858,7 @@ static void Info(bool print_func_header_turn_off = false) {
     scf::println(Globals::g_THEME_COLOR, "└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘", RESET);    
 }
 
-static void printUsage(const char* progname) {
+inline void printUsage(const char* progname) {
     scf::println("Usage: ", progname, " [options]");
     scf::println(BOLD, "Options:\n", RESET ,
               "  --version, -v       Print program version\n",
@@ -2787,6 +2874,7 @@ static void printUsage(const char* progname) {
               "  --stand-alone, -sa  Makes sectr run standalone with no logging, config and color\n",
               "  --config, -cfg      Prints config values of the current config\n",
               "  --smart-data, -sm   Enables smart data\n",
+              "  --fingerprint, -fp <device>  Print a SHA-256 fingerprint for a drive\n",
               "  --operation         Goes directly to a specific operation without menu\n"
     );
     if (!devSuffix()) { 
@@ -2816,7 +2904,7 @@ static void printUsage(const char* progname) {
 }
 
 
-static void notAvilable() {
+inline void notAvilable() {
     scf::println(BOLD, "[Attention] ", RESET ,"This function is not avilable in Stand alone mode (-sa)");
 }
 
@@ -2827,6 +2915,24 @@ struct arg_pair_t {
     bool exit_after_ = false;
 };
 
+const char *CLI_CMDS_FINGERPRINT = "--fingerprint";
+const char *CLI_CMDS_FINGERPRINT_SHORT = "-fp";
+const char *CLI_CMDS_LIST = "--list";
+const char *CLI_CMDS_FORMAT = "--format";
+const char *CLI_CMDS_CRYPT = "--crypt";
+const char *CLI_CMDS_RESIZE = "--resize";
+const char *CLI_CMDS_HEALTH = "--health";
+const char *CLI_CMDS_ANALYZE_SPACE = "--analyze-space";
+const char *CLI_CMDS_ANALYZE_SPACE_SHORT = "-as";
+const char *CLI_CMDS_OVERWRITE = "--overwrite";
+const char *CLI_CMDS_OVERWRITE_SMALL = "-o";
+const char *CLI_CMDS_METADATA = "--metadata";
+const char *CLI_CMDS_METADATA_SHORT = "-md";
+const char *CLI_CMDS_FORENSICS = "--forensics";
+const char *CLI_CMDS_CLONE = "--clone";
+const char *CLI_CMDS_CLONE_SHORT = "-cl";
+
+
 // ==================== Main Function ====================
 
 int main(int argc, char* argv[]) {
@@ -2836,18 +2942,16 @@ int main(int argc, char* argv[]) {
 
     { // cli cmd
 
-        const std::unordered_map<scf::str16, std::function<void()>> cli_commands = {
-            {"--list", []()         { scf::print(LEAVETERMINALSCREEN); ListDrivesUtil::listDrives(false); } },
-            {"--format", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; formatDrive(); } },
-            {"--crypt", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; USBEnDeCryptionUtils::mainUsbEnDecryption(); } }, 
-            {"--resize", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; resizeDrive(); } },
-            {"--health", []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; checkDriveHealth(); } },
-            {"--analyze-space", [](){ term.enableTerminosInput_diableAltTerminal(); analyzeDiskSpace(); } },
-            {"--overwrite", []()    { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; overwriteDriveData(); } },
+        const std::unordered_map<std::string, std::function<void()>> cli_commands = {
+            {CLI_CMDS_LIST, []()         { scf::print(LEAVETERMINALSCREEN); ListDrivesUtil::listDrives(false); } },
+            {CLI_CMDS_FORMAT, []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; formatDrive(); } },
+            {CLI_CMDS_CRYPT, []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; USBEnDeCryptionUtils::mainUsbEnDecryption(); } }, 
+            {CLI_CMDS_RESIZE, []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; resizeDrive(); } },
+            {CLI_CMDS_HEALTH, []()       { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; checkDriveHealth(); } },
+            {CLI_CMDS_ANALYZE_SPACE, [](){ term.enableTerminosInput_diableAltTerminal(); analyzeDiskSpace(); } },
             {"--metadata", []()     { term.enableTerminosInput_diableAltTerminal(); if (!checkRootMetadata()) return; MetadataReader::mainReader(); } },
             {"--forensics", []()    { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; ForensicAnalysis::mainForensic(); } },
-            {"--clone", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; Clone::mainClone(); } },
-            {"--fingerprint", []()  { term.enableTerminosInput_diableAltTerminal(); DriveFingerprinting::fingerprinting_main(); }}
+            {"--clone", []()        { term.enableTerminosInput_diableAltTerminal(); if (!checkRoot()) return; Clone::mainClone(); } }
         };
 
         const arg_pair_t arg_pairs[14] {
@@ -2895,8 +2999,8 @@ int main(int argc, char* argv[]) {
                 Globals::g_selected_drive = argv[i + 1];
                 i++;
                 
-                if (!fileExists(Globals::g_selected_drive)) {
-                    ERR(ErrorCode::DeviceNotFound, "");
+                if (!driveExists(Globals::g_selected_drive.c_str())) {
+                    ERR(ErrorCode::DeviceNotFound, Globals::g_selected_drive);
                     LOG_ERROR("The device: '" + Globals::g_selected_drive + "' could not be found");
                     exit(1);
                 }
@@ -2930,7 +3034,45 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            auto cmd = cli_commands.find(arg.to_std_str());
+            if (arg == CLI_CMDS_FINGERPRINT || arg == CLI_CMDS_FINGERPRINT_SHORT) {
+                if (i + 1 >= argc) {
+                    ERR(ErrorCode::DataUnavailable, "No path argument provided for --fingerprint");
+                    LOG_ERROR("No 3rd needed argument entered");
+                    exit(1);
+                }
+
+                Globals::g_selected_drive = argv[i + 1];
+                ++i;
+
+                if (!driveExists(Globals::g_selected_drive.c_str())) {
+                    ERR(ErrorCode::DeviceNotFound, Globals::g_selected_drive);
+                    LOG_ERROR("The device: '" + Globals::g_selected_drive + "' could not be found");
+                    exit(1);
+                }
+
+                return DriveFingerprinting::fingerprint_cli(Globals::g_selected_drive.c_str()) ? 0 : 1;
+            }
+
+            if (arg == CLI_CMDS_OVERWRITE || arg == CLI_CMDS_OVERWRITE_SMALL) {
+                if (i + 1 >= argc) {
+                    ERR(ErrorCode::DataUnavailable, "No path argument provided for --overwrite");
+                    LOG_ERROR("No 3rd needed argument entered");
+                    exit(1);
+                }
+
+                Globals::g_selected_drive = argv[i + 1];
+                ++i;
+
+                if (!driveExists(Globals::g_selected_drive.c_str())) {
+                    ERR(ErrorCode::DeviceNotFound, Globals::g_selected_drive);
+                    LOG_ERROR("The device: '" + Globals::g_selected_drive + "' could not be found");
+                    exit(1);
+                }
+
+                return OverwriteUtility::overwriter_cli(Globals::g_selected_drive.c_str()) ? 0 : 1;
+            }
+
+            auto cmd = cli_commands.find(arg.c_str());
             if (cmd != cli_commands.end()) {
                 cmd->second();
                 return 0;
@@ -3060,6 +3202,11 @@ int main(int argc, char* argv[]) {
                 // break; 
                 // DiskMod::main();
                 // auto res = EXEC_SPINNER("sleep 3 && echo $((1 + 1 + 2 + 3 * 108564 / 364 * 764759)) && sleep 3 &&  echo $((1 + 1 + 2 + 3 * 108564 / 364 * 764759)) && sleep 3");
+                if (std::filesystem::exists("/dev/sda")) {
+                    printf("exits\n");
+                } else {
+                    printf("not\n");
+                }
                 menuQues(running);
                 break;
             }

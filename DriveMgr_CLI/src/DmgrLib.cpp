@@ -41,7 +41,7 @@ void Logger::log(LogType type, const scf::str1024 &operation, const char* func) 
                 log_file << log_msg << std::endl;
 
             } else {
-                std::cerr << RED << "[Logger Error] Unable to open log file: " << Globals::log_path << " Reason: " << strerror(errno) << RESET <<"\n";
+                std::cerr << RED << BOLD << "[Logger Error]" << RESET << RED << " Unable to open log file: " << BOLD << Globals::log_path.c_str() << RESET << RED << " Reason: " << strerror(errno) << RESET <<"\n";
             }
 
         } else {
